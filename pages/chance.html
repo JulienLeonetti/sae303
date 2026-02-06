@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chance de gagner - PL Evolution</title>
+  <link rel="stylesheet" href="../styles/main.css">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+  <header>
+    <div class="header-container">
+      <a href="../index.html" class="logo" aria-label="Accueil">
+        <img src="../assets/pl-logo.png" alt="Premier League" class="pl-logo">
+      </a>
+      <button class="burger-btn" aria-label="Menu" aria-expanded="false" aria-controls="main-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav id="main-nav" data-open="false">
+        <a href="../index.html">Accueil</a>
+        <a href="./classement.html">Classement</a>
+        <a href="./equipes.html">Équipes</a>
+        <a href="./comparer.html">Comparer</a>
+        <a href="./chance.html">Chance de gagner</a>
+        <a href="./visuel.html">Visuel</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <div class="container">
+        <h1>Chance de gagner</h1>
+        <p style="color: var(--color-text-muted); margin-bottom: 2rem;">
+          Calculez la probabilité qu'une équipe gagne face à une autre basée sur 
+          leurs statistiques de la saison sélectionnée.
+        </p>
+        <div class="teams-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 3rem;">
+          <div>
+            <h3 style="margin-bottom: 1rem;">Équipe A</h3>
+            <div style="display: grid; gap: 1rem;">
+              <div>
+                <label for="team-a-select" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Équipe</label>
+                <select id="team-a-select" aria-label="Sélectionner l'équipe A">
+                  <option>Sélectionner...</option>
+                </select>
+              </div>
+              <div>
+                <label for="season-a-select" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Saison</label>
+                <select id="season-a-select" aria-label="Sélectionner la saison A">
+                  <option>Sélectionner...</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 style="margin-bottom: 1rem;">Équipe B</h3>
+            <div style="display: grid; gap: 1rem;">
+              <div>
+                <label for="team-b-select" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Équipe</label>
+                <select id="team-b-select" aria-label="Sélectionner l'équipe B">
+                  <option>Sélectionner...</option>
+                </select>
+              </div>
+              <div>
+                <label for="season-b-select" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Saison</label>
+                <select id="season-b-select" aria-label="Sélectionner la saison B">
+                  <option>Sélectionner...</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="result-container" class="hidden">
+          <div class="card" style="background: linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg-tertiary) 100%); border: 2px solid var(--color-primary);">
+            <h2 style="text-align: center; margin-bottom: 1.5rem;">Résultat</h2>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+              <div style="text-align: center;">
+                <div id="team-a-logo-container" style="margin-bottom: 0.75rem;"></div>
+                <div style="font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem;" id="team-a-name">Équipe A</div>
+                <div style="font-size: 3rem; font-weight: 900; background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 0.5rem;" id="prob-a">0%</div>
+                <div style="color: var(--color-text-muted); font-size: 0.875rem;">Chance de gagner</div>
+              </div>
+              <div style="text-align: center;">
+                <div id="team-b-logo-container" style="margin-bottom: 0.75rem;"></div>
+                <div style="font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem;" id="team-b-name">Équipe B</div>
+                <div style="font-size: 3rem; font-weight: 900; background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-secondary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 0.5rem;" id="prob-b">0%</div>
+                <div style="color: var(--color-text-muted); font-size: 0.875rem;">Chance de gagner</div>
+              </div>
+            </div>
+
+            <div id="winProbChartContainer" class="chart-container" style="border: none; background: transparent; padding: 0; margin-top: 1.5rem;">
+              <div class="card-head">
+                <h3 class="chart-title">Probabilité</h3>
+                <div class="card-actions">
+                  <button class="btn-export-svg" type="button" id="export-winprob-chart" aria-label="Exporter en SVG">
+                    <svg class="export-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path d="M12 3v10m0 0l-4-4m4 4l4-4M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    SVG
+                  </button>
+                </div>
+              </div>
+              <div id="winProbChart" style="width:100%;height:320px;"></div>
+              <p id="winProbMessage" class="winprob-msg"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-overlay"></div>
+
+  <script type="module">
+    import { dataLoader } from '../scripts/data/loader.js';
+    import { Header } from '../scripts/ui/header.js';
+    import { modal } from '../scripts/ui/modal.js';
+    import { createLogoElement } from '../scripts/ui/logoResolver.js';
+    import { buildChartDataPayload, downloadEChartsSVGWithData } from '../scripts/ui/svgExport.js';
+    import { observeOnce } from '../scripts/ui/onView.js';
+
+    async function initChance() {
+      const success = await dataLoader.load('../data/csvjson.json', '../data/csvjson (1).json');
+      if (!success) {
+        console.error('❌ Failed to load chance data');
+        modal.show('Erreur', 'Impossible de charger les données.');
+        return;
+      }
+
+      console.log('✅ Chance data loaded successfully');
+      Header.init();
+      Header.setActive('/pages/chance.html');
+
+      const teams = dataLoader.getTeams();
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const chartAnimDuration = reduceMotion ? 0 : 700;
+      let clubMeta = {};
+      let winProbChartInstance = null;
+      let winProbData = null;
+
+      const teamASelect = document.getElementById('team-a-select');
+      const seasonASelect = document.getElementById('season-a-select');
+      const teamBSelect = document.getElementById('team-b-select');
+      const seasonBSelect = document.getElementById('season-b-select');
+      const resultContainer = document.getElementById('result-container');
+      const winProbMessage = document.getElementById('winProbMessage');
+      const winProbChartEl = document.getElementById('winProbChart');
+      const winProbChartContainer = document.getElementById('winProbChartContainer');
+      const exportBtn = document.getElementById('export-winprob-chart');
+
+      if (exportBtn) {
+        exportBtn.addEventListener('click', async () => {
+          if (!winProbChartInstance || !winProbData) return;
+          const filename = buildFilename([
+            'chance',
+            winProbData.teamA,
+            winProbData.seasonA,
+            winProbData.teamB,
+            winProbData.seasonB,
+            'win-prob-chart'
+          ]);
+          const payload = buildChartDataPayload({
+            pageId: 'chance',
+            chartId: 'win-prob-chart',
+            title: 'Probabilité de victoire',
+            metric: 'probabilité',
+            xAxisName: '%',
+            yAxisName: 'Équipe',
+            categories: [
+              `${winProbData.teamA} (${winProbData.seasonA})`,
+              `${winProbData.teamB} (${winProbData.seasonB})`
+            ],
+            series: [
+              { name: 'Probabilité', data: [Number(winProbData.pA.toFixed(1)), Number(winProbData.pB.toFixed(1))] }
+            ]
+          });
+          await downloadEChartsSVGWithData(winProbChartInstance, filename, payload);
+        });
+      }
+
+      if (winProbChartContainer && !reduceMotion) {
+        winProbChartContainer.classList.add('chart--hidden');
+      }
+
+      observeOnce(winProbChartEl, () => {
+        if (winProbChartContainer && !reduceMotion) {
+          winProbChartContainer.classList.remove('chart--hidden');
+        }
+        requestAnimationFrame(() => {
+          initWinProbChart();
+          if (winProbData) {
+            renderWinProbabilityChart(
+              winProbData.teamA,
+              winProbData.seasonA,
+              winProbData.pA,
+              winProbData.teamB,
+              winProbData.seasonB,
+              winProbData.pB,
+              true
+            );
+          }
+        });
+      });
+
+      try {
+        const clubMetaRes = await fetch('../clubMeta.json');
+        clubMeta = await clubMetaRes.json();
+      } catch (e) {
+        console.warn('⚠️ Failed to load clubMeta.json:', e.message);
+      }
+
+      function slugifyClubName(name) {
+        if (!name) return '';
+        return name
+          .toLowerCase()
+          .trim()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[.']/g, '')
+          .replace(/&/g, 'and')
+          .replace(/[\s_]+/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '');
+      }
+
+      function getClubColor(teamName) {
+        const slug = slugifyClubName(teamName);
+        const meta = clubMeta[slug];
+        return (meta && (meta.primaryColor || meta.color)) || '#94a3b8';
+      }
+
+      function buildFilename(parts) {
+        return parts
+          .filter(Boolean)
+          .map((part) =>
+            String(part)
+              .toLowerCase()
+              .trim()
+              .replace(/\s+/g, '-')
+              .replace(/[^a-z0-9-]/g, '')
+          )
+          .filter(Boolean)
+          .join('-');
+      }
+
+      function isInViewport(el) {
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        return rect.top < window.innerHeight && rect.bottom > 0;
+      }
+
+      function toNum(v) {
+        if (v === null || v === undefined || v === '') return 0;
+        const s = String(v)
+          .trim()
+          .replace(/\u00A0/g, ' ')
+          .replace(/\s+/g, '')
+          .replace('%', '')
+          .replace(',', '.');
+        const n = Number(s);
+        return Number.isFinite(n) ? n : 0;
+      }
+
+      function normalizeBaseTeamName(str) {
+        if (!str) return '';
+        return String(str)
+          .toLowerCase()
+          .trim()
+          .replace(/&/g, 'and')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[.'’`]/g, '')
+          .replace(/[^a-z0-9\s-]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
+      const baseNormalizedTeams = new Set(
+        dataLoader.teamStats.map(s => normalizeBaseTeamName(s.team))
+      );
+
+      const teamAliases = new Map([
+        ['man utd', 'manchester united'],
+        ['man united', 'manchester united'],
+        ['manchester utd', 'manchester united'],
+        ['man city', 'manchester city'],
+        ['wba', 'west bromwich albion'],
+        ['west brom', 'west bromwich albion'],
+        ['spurs', 'tottenham hotspur'],
+        ['wolves', 'wolverhampton wanderers'],
+        ['qpr', 'queens park rangers'],
+        ['nottm forest', 'nottingham forest'],
+        ['nottingham forest', 'nottingham forest'],
+        ['bournemouth', 'afc bournemouth'],
+        ['brighton', 'brighton and hove albion'],
+        ['west ham', 'west ham united'],
+        ['newcastle', 'newcastle united'],
+        ['sheff utd', 'sheffield united'],
+        ['sheff united', 'sheffield united']
+      ]);
+
+      function normalizeTeamName(str) {
+        if (!str) return '';
+        const base = normalizeBaseTeamName(str);
+        if (teamAliases.has(base)) return teamAliases.get(base);
+
+        const suffixStripped = base.replace(/\b(fc|afc|cf)\b/g, '').replace(/\s+/g, ' ').trim();
+        if (suffixStripped && baseNormalizedTeams.has(suffixStripped)) {
+          return suffixStripped;
+        }
+        return base;
+      }
+
+      function sortSeasonsAsc(a, b) {
+        const yearA = parseInt(String(a).split('-')[0], 10);
+        const yearB = parseInt(String(b).split('-')[0], 10);
+        if (Number.isNaN(yearA) || Number.isNaN(yearB)) return String(a).localeCompare(String(b));
+        return yearA - yearB;
+      }
+
+      function getSeasonsForClub(clubName) {
+        if (!clubName || clubName === 'Sélectionner...') return [];
+        const seasonsSet = new Set();
+        dataLoader.teamStats.forEach(s => {
+          if (s.team === clubName && s.season) seasonsSet.add(s.season);
+        });
+        if (seasonsSet.size === 0) {
+          dataLoader.matches.forEach(m => {
+            if ((m.homeTeam === clubName || m.awayTeam === clubName) && m.season) {
+              seasonsSet.add(m.season);
+            }
+          });
+        }
+        return Array.from(seasonsSet).sort(sortSeasonsAsc);
+      }
+
+      function populateSeasonSelect(selectEl, seasonsList, keepValue, hasTeam) {
+        selectEl.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        if (!hasTeam) {
+          placeholder.textContent = 'Sélectionner...';
+          placeholder.disabled = false;
+        } else if (!seasonsList.length) {
+          placeholder.textContent = 'Aucune saison disponible';
+          placeholder.disabled = true;
+        } else {
+          placeholder.textContent = 'Sélectionner...';
+          placeholder.disabled = false;
+        }
+        placeholder.selected = true;
+        selectEl.appendChild(placeholder);
+
+        seasonsList.forEach(season => {
+          const opt = document.createElement('option');
+          opt.value = season;
+          opt.textContent = season;
+          selectEl.appendChild(opt);
+        });
+
+        if (keepValue && seasonsList.includes(keepValue)) {
+          selectEl.value = keepValue;
+        }
+      }
+
+      function initWinProbChart() {
+        if (winProbChartInstance || !winProbChartEl) return;
+        winProbChartInstance = echarts.init(winProbChartEl, null, { renderer: 'svg' });
+        const ro = new ResizeObserver(() => winProbChartInstance.resize());
+        ro.observe(winProbChartEl);
+        winProbChartInstance.resize();
+      }
+
+      function renderWinProbabilityChart(teamA, seasonA, pA, teamB, seasonB, pB, animate) {
+        if (!winProbChartInstance) return;
+        const enableAnim = animate && !reduceMotion;
+        if (enableAnim) {
+          winProbChartInstance.clear();
+        }
+
+        const labelA = `${teamA} (${seasonA})`;
+        const labelB = `${teamB} (${seasonB})`;
+        const data = [Number(pA.toFixed(1)), Number(pB.toFixed(1))];
+        const colors = [getClubColor(teamA), getClubColor(teamB)];
+
+        winProbChartInstance.setOption({
+          animation: enableAnim,
+          animationDuration: enableAnim ? 900 : 0,
+          animationDurationUpdate: enableAnim ? 900 : 0,
+          animationEasing: 'cubicOut',
+          title: { text: 'Probabilité de victoire', left: 'center', textStyle: { color: '#fff' } },
+          grid: { left: 140, right: 40, top: 20, bottom: 40 },
+          tooltip: {
+            trigger: 'item',
+            backgroundColor: 'rgba(15, 23, 42, 0.8)',
+            textStyle: { color: '#f1f5f9' },
+            formatter: (p) => `${p.name}: ${p.value.toFixed(1)}%`
+          },
+          xAxis: {
+            type: 'value',
+            min: 0,
+            max: 100,
+            name: '%',
+            nameTextStyle: { color: '#94a3b8' },
+            axisLabel: { color: '#94a3b8' }
+          },
+          yAxis: {
+            type: 'category',
+            data: [labelA, labelB],
+            name: 'Équipe',
+            axisLabel: { color: '#e2e8f0' }
+          },
+          series: [{
+            name: 'Probabilité',
+            type: 'bar',
+            data,
+            barWidth: 22,
+            universalTransition: true,
+            itemStyle: {
+              color: (params) => colors[params.dataIndex] || '#94a3b8'
+            },
+            label: {
+              show: true,
+              position: 'right',
+              formatter: (p) => `${p.value.toFixed(1)}%`,
+              color: '#e2e8f0'
+            }
+          }]
+        }, true);
+      }
+
+      teams.forEach(team => {
+        const optA = document.createElement('option');
+        optA.value = team;
+        optA.textContent = team;
+        teamASelect.appendChild(optA);
+
+        const optB = document.createElement('option');
+        optB.value = team;
+        optB.textContent = team;
+        teamBSelect.appendChild(optB);
+      });
+
+      populateSeasonSelect(seasonASelect, [], null, false);
+      populateSeasonSelect(seasonBSelect, [], null, false);
+
+      function updateSeasonOptionsForTeam(teamSelect, seasonSelect) {
+        const teamValue = teamSelect.value;
+        const hasTeam = !!teamValue && teamValue !== 'Sélectionner...';
+        const previous = seasonSelect.value;
+        const seasonsList = hasTeam ? getSeasonsForClub(teamValue) : [];
+        populateSeasonSelect(seasonSelect, seasonsList, previous, hasTeam);
+      }
+
+      function getTeamSeasonStats(team, season) {
+        if (!team || !season) return null;
+        const seasonKey = String(season).trim();
+        const target = normalizeTeamName(team);
+
+        const candidates = dataLoader.teamStats.filter(s => String(s.season).trim() === seasonKey);
+        let matched = candidates.filter(s => normalizeTeamName(s.team) === target);
+
+        const completenessScore = (s) => {
+          const fields = [
+            'goals',
+            'total_scoring_att',
+            'ontarget_scoring_att',
+            'clean_sheet',
+            'goals_conceded',
+            'total_red_card',
+            'total_yel_card'
+          ];
+          return fields.reduce((acc, key) => acc + (Number.isFinite(toNum(s[key])) ? 1 : 0), 0);
+        };
+
+        if (matched.length > 1) {
+          matched.sort((a, b) => completenessScore(b) - completenessScore(a));
+          return matched[0];
+        }
+
+        if (matched.length === 1) return matched[0];
+
+        const soft = candidates.filter(s => {
+          const name = normalizeTeamName(s.team);
+          return name.includes(target) || target.includes(name);
+        });
+        if (soft.length === 1) return soft[0];
+        return null;
+      }
+
+      function updateResult() {
+        const teamA = teamASelect.value;
+        const seasonA = seasonASelect.value;
+        const teamB = teamBSelect.value;
+        const seasonB = seasonBSelect.value;
+
+        const seasonsAOptions = getSeasonsForClub(teamA);
+        const seasonsBOptions = getSeasonsForClub(teamB);
+        console.log('[chance] selected', { teamA, seasonA, teamB, seasonB });
+        console.log('[chance] seasonsA', seasonsAOptions, 'seasonsB', seasonsBOptions);
+
+        if (!teamA || !seasonA || !teamB || !seasonB) {
+          resultContainer.classList.add('hidden');
+          return;
+        }
+
+        const statsA = getTeamSeasonStats(teamA, seasonA);
+        const statsB = getTeamSeasonStats(teamB, seasonB);
+
+        console.log('[chance] findA', { teamA, seasonA });
+        console.log('[chance] findB', { teamB, seasonB });
+        console.log('[chance] statsA raw', statsA);
+        console.log('[chance] statsB raw', statsB);
+
+        if (!statsA || !statsB) {
+          modal.show('Données absentes', 'Données absentes pour ce club sur cette saison.');
+          resultContainer.classList.add('hidden');
+          return;
+        }
+
+        const { probA, probB } = calculateProbability(statsA, statsB);
+        if (!Number.isFinite(probA) || !Number.isFinite(probB)) {
+          modal.show('Calcul impossible', 'Impossible de calculer la probabilité pour cette sélection.');
+          resultContainer.classList.add('hidden');
+          return;
+        }
+
+        const logoAContainer = document.getElementById('team-a-logo-container');
+        logoAContainer.innerHTML = '';
+        logoAContainer.appendChild(createLogoElement(teamA, { size: 56 }));
+
+        const logoBContainer = document.getElementById('team-b-logo-container');
+        logoBContainer.innerHTML = '';
+        logoBContainer.appendChild(createLogoElement(teamB, { size: 56 }));
+
+        document.getElementById('team-a-name').textContent = teamA;
+        document.getElementById('team-b-name').textContent = teamB;
+        document.getElementById('prob-a').textContent = `${(probA * 100).toFixed(1)}%`;
+        document.getElementById('prob-b').textContent = `${(probB * 100).toFixed(1)}%`;
+        const clampPct = (v) => Math.min(100, Math.max(0, v));
+        const pA = clampPct(probA * 100);
+        const pB = clampPct(probB * 100);
+        if (!Number.isFinite(pA) || !Number.isFinite(pB)) {
+          modal.show('Calcul impossible', 'Impossible de calculer la probabilité pour cette sélection.');
+          resultContainer.classList.add('hidden');
+          return;
+        }
+        let message = '';
+        if (pA > pB) {
+          message = `<strong>${teamA} (${seasonA})</strong> a environ ${pA.toFixed(1)}% de chances de gagner contre ${teamB} (${seasonB}) (contre ${pB.toFixed(1)}% pour l’adversaire).`;
+        } else if (pB > pA) {
+          message = `<strong>${teamB} (${seasonB})</strong> a environ ${pB.toFixed(1)}% de chances de gagner contre ${teamA} (${seasonA}) (contre ${pA.toFixed(1)}% pour l’adversaire).`;
+        } else {
+          message = `Égalité : ${teamA} (${seasonA}) et ${teamB} (${seasonB}) ont environ ${pA.toFixed(1)}% de chances chacun.`;
+        }
+        winProbMessage.innerHTML = message;
+
+        winProbData = { teamA, seasonA, pA, teamB, seasonB, pB };
+        if (Number.isFinite(pA) && Number.isFinite(pB) && winProbChartInstance) {
+          renderWinProbabilityChart(teamA, seasonA, pA, teamB, seasonB, pB, isInViewport(winProbChartEl));
+        }
+
+        resultContainer.classList.remove('hidden');
+      }
+
+      teamASelect.addEventListener('change', () => {
+        updateSeasonOptionsForTeam(teamASelect, seasonASelect);
+        updateResult();
+      });
+      seasonASelect.addEventListener('change', updateResult);
+      teamBSelect.addEventListener('change', () => {
+        updateSeasonOptionsForTeam(teamBSelect, seasonBSelect);
+        updateResult();
+      });
+      seasonBSelect.addEventListener('change', updateResult);
+    }
+
+    function toNum(v) {
+      if (v === null || v === undefined || v === '') return 0;
+      const s = String(v)
+        .trim()
+        .replace(/\u00A0/g, ' ')
+        .replace(/\s+/g, '')
+        .replace('%', '')
+        .replace(',', '.');
+      const n = Number(s);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function calculateProbability(statsA, statsB) {
+      console.log('[calculateProbability] Input:', {
+        teamA: statsA.team,
+        seasonA: statsA.season,
+        teamB: statsB.team,
+        seasonB: statsB.season
+      });
+
+      const getPercentile = (value, allValues) => {
+        const numbers = allValues.map(v => toNum(v)).filter(v => Number.isFinite(v));
+        if (numbers.length === 0) return 0.5;
+        
+        const sorted = [...numbers].sort((a, b) => a - b);
+        const numValue = toNum(value);
+        
+        const below = sorted.filter(v => v < numValue).length;
+        return below / sorted.length;
+      };
+
+      const calculateTeamScore = (team, season) => {
+        const seasonStats = dataLoader.teamStats.filter(s => s.season === season);
+        if (!seasonStats.length) return 50;
+        
+        const teamStats = seasonStats.find(s => s.team === team);
+        if (!teamStats) return 50;
+
+        const wins = toNum(teamStats.wins);
+        const losses = toNum(teamStats.losses);
+        const draws = Math.max(0, 38 - wins - losses);
+        const points = wins * 3 + draws;
+        
+        const allPoints = seasonStats.map(s => {
+          const w = toNum(s.wins);
+          const l = toNum(s.losses);
+          const d = Math.max(0, 38 - w - l);
+          return w * 3 + d;
+        });
+        const pointsPercentile = getPercentile(points, allPoints);
+
+        const goalsPercentile = getPercentile(
+          toNum(teamStats.goals),
+          seasonStats.map(s => s.goals)
+        );
+
+        const goalsConceded = toNum(teamStats.goals_conceded);
+        const goalsConcededPercentile = 1 - getPercentile(
+          goalsConceded,
+          seasonStats.map(s => s.goals_conceded)
+        );
+
+        const cleanSheetPercentile = getPercentile(
+          toNum(teamStats.clean_sheet),
+          seasonStats.map(s => s.clean_sheet)
+        );
+
+        const finalScore = (
+          pointsPercentile * 40 +
+          goalsPercentile * 25 +
+          goalsConcededPercentile * 25 +
+          cleanSheetPercentile * 10
+        );
+
+        return finalScore;
+      };
+
+      const scoreA = calculateTeamScore(statsA.team, statsA.season);
+      const scoreB = calculateTeamScore(statsB.team, statsB.season);
+
+      console.log('[calculateProbability] Scores:', {
+        scoreA: scoreA.toFixed(2),
+        scoreB: scoreB.toFixed(2)
+      });
+
+      const diff = scoreA - scoreB;
+
+      const k = 0.03;
+      const probA = 1 / (1 + Math.exp(-k * diff));
+      const probB = 1 - probA;
+
+      console.log('[calculateProbability] Result:', {
+        diff: diff.toFixed(2),
+        probA: (probA * 100).toFixed(1) + '%',
+        probB: (probB * 100).toFixed(1) + '%'
+      });
+
+      return {
+        probA: probA,
+        probB: probB,
+        attackScoreA: scoreA / 100,
+        defenseScoreA: scoreA / 100
+      };
+    }
+
+    initChance();
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

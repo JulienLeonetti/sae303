@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comparer - PL Evolution</title>
+  <link rel="stylesheet" href="../styles/main.css">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+  <header>
+    <div class="header-container">
+      <a href="../index.html" class="logo" aria-label="Accueil">
+        <img src="../assets/pl-logo.png" alt="Premier League" class="pl-logo">
+      </a>
+      <button class="burger-btn" aria-label="Menu" aria-expanded="false" aria-controls="main-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav id="main-nav" data-open="false">
+        <a href="../index.html">Accueil</a>
+        <a href="./classement.html">Classement</a>
+        <a href="./equipes.html">Équipes</a>
+        <a href="./comparer.html">Comparer</a>
+        <a href="./chance.html">Chance de gagner</a>
+        <a href="./visuel.html">Visuel</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <div class="container">
+        <h1>Comparer deux équipes</h1>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+          <div>
+            <label for="team-a-select" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Équipe A</label>
+            <select id="team-a-select" aria-label="Sélectionner l'équipe A">
+              <option>Sélectionner...</option>
+            </select>
+            <div id="team-a-display" style="margin-top: 1rem; display: none; display: flex; align-items: center; gap: 0.75rem;"></div>
+          </div>
+          <div>
+            <label for="team-b-select" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Équipe B</label>
+            <select id="team-b-select" aria-label="Sélectionner l'équipe B">
+              <option>Sélectionner...</option>
+            </select>
+            <div id="team-b-display" style="margin-top: 1rem; display: none; display: flex; align-items: center; gap: 0.75rem;"></div>
+          </div>
+          <div>
+            <label for="metric-select" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Métrique</label>
+            <select id="metric-select" aria-label="Sélectionner une métrique" disabled>
+              <option value="" selected>Chargement...</option>
+            </select>
+          </div>
+        </div>
+
+                <div class="chart-container mb-4">
+          <div class="card-head">
+            <h3 class="chart-title">Évolution comparée par saison</h3>
+            <div class="card-actions">
+              <button class="btn-export-svg" type="button" id="export-comparison-chart" aria-label="Exporter en SVG">
+                <svg class="export-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M12 3v10m0 0l-4-4m4 4l4-4M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                SVG
+              </button>
+            </div>
+          </div>
+          <div id="comparison-chart" class="chart"></div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-overlay"></div>
+
+  <script type="module">
+    import { dataLoader } from '../scripts/data/loader.js';
+    import { Header } from '../scripts/ui/header.js';
+    import { modal } from '../scripts/ui/modal.js';
+    import { createLogoElement } from '../scripts/ui/logoResolver.js';
+    import { buildChartDataPayload, downloadEChartsSVGWithData } from '../scripts/ui/svgExport.js';
+    import { observeOnce } from '../scripts/ui/onView.js';
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const chartAnimDuration = reduceMotion ? 0 : 1400;
+    let comparisonChart = null;
+    let comparisonChartData = null;
+
+    async function initCompare() {
+      const success = await dataLoader.load('../data/csvjson.json', '../data/csvjson (1).json');
+      if (!success) {
+        console.error('❌ Failed to load compare data');
+        modal.show('Erreur', 'Impossible de charger les données.');
+        return;
+      }
+
+      console.log('✅ Compare data loaded successfully');
+      Header.init();
+      Header.setActive('/pages/comparer.html');
+
+      const teams = dataLoader.getTeams();
+      const teamASelect = document.getElementById('team-a-select');
+      const teamBSelect = document.getElementById('team-b-select');
+      const metricSelect = document.getElementById('metric-select');
+      const chartEl = document.getElementById('comparison-chart');
+      const chartContainer = chartEl.closest('.chart-container') || chartEl.parentElement;
+
+      if (chartContainer && !reduceMotion) {
+        chartContainer.classList.add('chart--hidden');
+      }
+
+      const exportBtn = document.getElementById('export-comparison-chart');
+      if (exportBtn) {
+        exportBtn.addEventListener('click', async () => {
+          if (!comparisonChart) return;
+          const teamA = teamASelect.value || '';
+          const teamB = teamBSelect.value || '';
+          const metric = metricSelect.value || '';
+          const metricLabel = getMetricLabel(metric);
+          const payload = buildChartDataPayload({
+            pageId: 'comparer',
+            chartId: 'comparison-chart',
+            title: 'Évolution comparée par saison',
+            metric: metricLabel,
+            xAxisName: 'Saison',
+            yAxisName: metricLabel,
+            categories: comparisonChartData ? comparisonChartData.seasons : [],
+            series: [
+              { name: teamA, data: comparisonChartData ? comparisonChartData.dataA : [] },
+              { name: teamB, data: comparisonChartData ? comparisonChartData.dataB : [] }
+            ]
+          });
+          const filename = buildFilename(['comparer', teamA, teamB, metric, 'comparison-chart']);
+          await downloadEChartsSVGWithData(comparisonChart, filename, payload);
+        });
+      }
+      
+
+      function isInViewport(el) {
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        return rect.top < window.innerHeight && rect.bottom > 0;
+      }
+
+      function initComparisonChart() {
+        if (comparisonChart || !chartEl) return;
+        comparisonChart = echarts.init(chartEl, null, { renderer: 'svg' });
+        const ro = new ResizeObserver(() => comparisonChart.resize());
+        ro.observe(chartEl);
+        comparisonChart.resize();
+      }
+
+      function renderComparisonChart(payload, animate) {
+        if (!comparisonChart || !payload) return;
+        const enableAnim = animate && !reduceMotion;
+        const symbolSize = window.innerWidth < 768 ? 10 : 12;
+        const metricLabel = getMetricLabel(payload.metric);
+        const option = {
+          animation: enableAnim,
+          animationDuration: enableAnim ? 1200 : 0,
+          animationEasing: 'cubicOut',
+          animationDurationUpdate: enableAnim ? 600 : 0,
+          animationEasingUpdate: 'cubicOut',
+          responsive: true,
+          grid: { left: 50, right: 24, top: 30, bottom: 40, containLabel: true },
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'none' },
+            backgroundColor: 'rgba(10,12,20,0.92)',
+            borderColor: 'rgba(255,255,255,0.12)',
+            borderWidth: 1,
+            textStyle: { color: '#fff' }
+          },
+          legend: { textStyle: { color: '#94a3b8' } },
+          title: { text: '', left: 'center', textStyle: { color: '#fff' } },
+          xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            name: 'Saison',
+            data: payload.seasons,
+            axisLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 12 },
+            axisLine: { lineStyle: { color: 'rgba(255,255,255,0.15)' } },
+            axisTick: { show: false }
+          },
+          yAxis: {
+            type: 'value',
+            name: metricLabel,
+            axisLabel: { color: 'rgba(255,255,255,0.55)', fontSize: 12 },
+            splitLine: { lineStyle: { color: 'rgba(255,255,255,0.10)' } },
+            axisLine: { show: false },
+            axisTick: { show: false }
+          },
+          series: [
+            {
+              name: payload.teamA,
+              data: payload.dataA,
+              type: 'line',
+              smooth: true,
+              showSymbol: true,
+              symbol: 'circle',
+              symbolSize,
+              label: { show: false },
+              itemStyle: {
+                color: getTeamColor(payload.teamA),
+                borderWidth: 2,
+                borderColor: '#0a0c14',
+                shadowBlur: 12,
+                shadowColor: getTeamColor(payload.teamA)
+              },
+              lineStyle: { width: 3, cap: 'round', join: 'round' },
+              areaStyle: { opacity: 0.08 },
+              emphasis: { focus: 'series', scale: 1.3 },
+              animationDelay: enableAnim ? (idx) => idx * 150 : 0
+            },
+            {
+              name: payload.teamB,
+              data: payload.dataB,
+              type: 'line',
+              smooth: true,
+              showSymbol: true,
+              symbol: 'circle',
+              symbolSize,
+              label: { show: false },
+              itemStyle: {
+                color: getTeamColor(payload.teamB),
+                borderWidth: 2,
+                borderColor: '#0a0c14',
+                shadowBlur: 12,
+                shadowColor: getTeamColor(payload.teamB)
+              },
+              lineStyle: { width: 3, cap: 'round', join: 'round' },
+              areaStyle: { opacity: 0.08 },
+              emphasis: { focus: 'series', scale: 1.3 },
+              animationDelay: enableAnim ? (idx) => idx * 150 : 0
+            }
+          ]
+        };
+        comparisonChart.clear();
+        comparisonChart.setOption(option, true);
+      }
+
+      teams.forEach(team => {
+        const optionA = document.createElement('option');
+        optionA.value = team;
+        optionA.textContent = team;
+        teamASelect.appendChild(optionA);
+
+        const optionB = document.createElement('option');
+        optionB.value = team;
+        optionB.textContent = team;
+        teamBSelect.appendChild(optionB);
+      });
+
+      function getMetricLabel(metric) {
+        return dataLoader.getMetricLabel(metric);
+      }
+
+      function populateMetricSelect() {
+        const options = dataLoader.getMetricOptions();
+        metricSelect.innerHTML = '';
+        if (!options.length) {
+          const opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = 'Aucune métrique disponible';
+          opt.disabled = true;
+          opt.selected = true;
+          metricSelect.appendChild(opt);
+          metricSelect.disabled = true;
+          return;
+        }
+
+        options.forEach((metric, index) => {
+          const opt = document.createElement('option');
+          opt.value = metric.key;
+          opt.textContent = metric.label;
+          if (index === 0) opt.selected = true;
+          metricSelect.appendChild(opt);
+        });
+        metricSelect.disabled = false;
+      }
+
+      function normalizeTeamName(name) {
+        return String(name || '').trim().toLowerCase();
+      }
+
+      function getTeamSeasonSeries(team, metric, seasons) {
+        const target = normalizeTeamName(team);
+        return seasons.map((season) => {
+          const entry = dataLoader.teamStats.find(
+            (s) => normalizeTeamName(s.team) === target && String(s.season).trim() === String(season).trim()
+          );
+          if (!entry) return null;
+          const value = entry[metric];
+          if (value === undefined || value === null || value === '') return null;
+          const num = Number(value);
+          return Number.isFinite(num) ? num : null;
+        });
+      }
+
+      function buildFilename(parts) {
+        return parts
+          .filter(Boolean)
+          .map((part) =>
+            String(part)
+              .toLowerCase()
+              .trim()
+              .replace(/\s+/g, '-')
+              .replace(/[^a-z0-9-]/g, '')
+          )
+          .filter(Boolean)
+          .join('-');
+      }
+
+      function updateChart() {
+        const teamA = teamASelect.value;
+        const teamB = teamBSelect.value;
+        const metric = metricSelect.value;
+
+        const teamADisplay = document.getElementById('team-a-display');
+        const teamBDisplay = document.getElementById('team-b-display');
+
+        if (teamA && teamA !== 'Sélectionner...') {
+          teamADisplay.innerHTML = '';
+          teamADisplay.style.display = 'flex';
+          teamADisplay.appendChild(createLogoElement(teamA, { size: 28 }));
+          const nameEl = document.createElement('strong');
+          nameEl.textContent = teamA;
+          teamADisplay.appendChild(nameEl);
+        } else {
+          teamADisplay.style.display = 'none';
+        }
+
+        if (teamB && teamB !== 'Sélectionner...') {
+          teamBDisplay.innerHTML = '';
+          teamBDisplay.style.display = 'flex';
+          teamBDisplay.appendChild(createLogoElement(teamB, { size: 28 }));
+          const nameEl = document.createElement('strong');
+          nameEl.textContent = teamB;
+          teamBDisplay.appendChild(nameEl);
+        } else {
+          teamBDisplay.style.display = 'none';
+        }
+
+        if (!teamA || !teamB || teamA === 'Sélectionner...' || teamB === 'Sélectionner...') {
+          return;
+        }
+        if (!metric) return;
+
+        const seasons = dataLoader.getSeasons();
+        const dataA = getTeamSeasonSeries(teamA, metric, seasons);
+        const dataB = getTeamSeasonSeries(teamB, metric, seasons);
+
+        const payload = { teamA, teamB, metric, seasons, dataA, dataB };
+        comparisonChartData = payload;
+
+        const shouldAnimate = !reduceMotion && chartEl.dataset.seen !== '1';
+        if (chartContainer) {
+          if (shouldAnimate) {
+            chartContainer.classList.add('chart--hidden');
+          } else {
+            chartContainer.classList.remove('chart--hidden');
+          }
+        }
+
+        if (comparisonChart) {
+          renderComparisonChart(payload, isInViewport(chartEl));
+        } else if (!shouldAnimate) {
+          initComparisonChart();
+          renderComparisonChart(payload, false);
+        }
+
+        observeOnce(chartEl, () => {
+          if (chartContainer && !reduceMotion) {
+            chartContainer.classList.remove('chart--hidden');
+          }
+          requestAnimationFrame(() => {
+            initComparisonChart();
+            if (comparisonChartData) {
+              renderComparisonChart(comparisonChartData, true);
+            }
+          });
+        });
+      }
+
+      populateMetricSelect();
+      teamASelect.addEventListener('change', updateChart);
+      teamBSelect.addEventListener('change', updateChart);
+      metricSelect.addEventListener('change', updateChart);
+
+    }
+
+    function getTeamColor(team) {
+      const colors = {
+        'Manchester United': '#da291c',
+        'Chelsea': '#0066cc',
+        'Arsenal': '#ef0107',
+        'Liverpool': '#c8102e',
+        'Manchester City': '#6cabda',
+        'Tottenham Hotspur': '#ffffff',
+        'Everton': '#003da5',
+        'Aston Villa': '#670e36',
+        'Newcastle United': '#241f20',
+        'Southampton': '#d3d3d3'
+      };
+      const hash = team.split('').reduce((h, c) => (h << 5) - h + c.charCodeAt(0), 0);
+      const palette = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#8b5cf6', '#14b8a6'];
+      return colors[team] || palette[Math.abs(hash) % palette.length];
+    }
+
+    initCompare();
+  </script>
+</body>
+</html>
+
+

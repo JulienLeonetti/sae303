@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Équipes - PL Evolution</title>
+  <link rel="stylesheet" href="../styles/main.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+  <header>
+    <div class="header-container">
+      <a href="../index.html" class="logo" aria-label="Accueil">
+        <img src="../assets/pl-logo.png" alt="Premier League" class="pl-logo">
+      </a>
+      <button class="burger-btn" aria-label="Menu" aria-expanded="false" aria-controls="main-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav id="main-nav" data-open="false">
+        <a href="../index.html">Accueil</a>
+        <a href="./classement.html">Classement</a>
+        <a href="./equipes.html">Équipes</a>
+        <a href="./comparer.html">Comparer</a>
+        <a href="./chance.html">Chance de gagner</a>
+        <a href="./visuel.html">Visuel</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <div class="container">
+        <h1>Équipes de la Premier League</h1>
+        
+        <div style="margin-bottom: 2rem;">
+          <input type="text" id="search-input" placeholder="Chercher un club..." 
+                 style="width: 100%; max-width: 400px; padding: 0.75rem 1rem;"
+                 aria-label="Rechercher un club">
+        </div>
+
+        <div id="teams-grid" class="grid grid-4"></div>
+      </div>
+    </section>
+
+    <section id="detail-section" class="hidden">
+      <div class="container">
+        <button id="back-btn" class="btn btn-secondary mb" style="margin-bottom: 2rem;">← Retour aux équipes</button>
+        
+        <h2 id="team-name"></h2><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; max-width: 600px;">
+          <div>
+            <label for="team-season-select" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Saison</label>
+            <select id="team-season-select" aria-label="Sélectionner une saison"></select>
+          </div>
+        </div>
+
+        <section id="stadiumCard" class="stadium-card mb-4">
+          <div class="stadium-media">
+            <img id="stadiumPhoto" alt="" loading="lazy" decoding="async">
+          </div>
+          <div class="stadium-body">
+            <h2 id="clubTitle">Stade</h2>
+            <p id="stadiumLine" class="stadium-line">Non renseigné</p>
+            <p id="stadiumFallback" class="stadium-fallback">Non renseigné</p>
+            <div class="stadium-footer">
+              <a id="openMapBtn" class="btn btn-secondary btn-small" href="#" target="_blank" rel="noopener noreferrer">Ouvrir la carte</a>
+            </div>
+          </div>
+          <div class="stadium-map-wrap">
+            <div id="stadiumMapWrap"></div>
+            <p id="stadiumMapFallback" class="stadium-map-fallback">Localisation non renseignée</p>
+          </div>
+        </section>
+
+        <div id="team-stats-container" class="kpi-container mb-4"></div>
+
+        <section class="card mb-4">
+          <div class="card-head">
+            <h2 class="chart-title">Profil statistique</h2>
+            <div class="card-actions">
+              <button class="btn-export" type="button" id="export-radar-chart" aria-label="Exporter le graphique en SVG">
+                <svg class="export-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M12 3v10m0 0l-4-4m4 4l4-4M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                SVG
+              </button>
+            </div>
+          </div>
+          <div id="radarChart" style="width:100%;height:420px;"></div>
+        </section>
+
+        <div class="grid grid-2 mb-4">
+          <div class="chart-container">
+            <div class="card-head">
+              <h3 class="chart-title">Répartition résultats</h3>
+              <div class="card-actions">
+                <button class="btn-export" type="button" id="export-results-chart" aria-label="Exporter le graphique en SVG">
+                  <svg class="export-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M12 3v10m0 0l-4-4m4 4l4-4M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  SVG
+                </button>
+              </div>
+            </div>
+            <div id="results-chart" class="chart compact"></div>
+          </div>
+          <div class="chart-container">
+            <div class="card-head">
+              <h3 class="chart-title">Domicile vs Extérieur</h3>
+              <div class="card-actions">
+                <button class="btn-export" type="button" id="export-homeaway-chart" aria-label="Exporter le graphique en SVG">
+                  <svg class="export-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M12 3v10m0 0l-4-4m4 4l4-4M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  SVG
+                </button>
+              </div>
+            </div>
+            <div id="homeaway-chart" class="chart compact"></div>
+          </div>
+        </div>
+
+        <div class="chart-container mb-4">
+          <div class="card-head">
+            <h3 class="chart-title">Comparaison à la moyenne PL</h3>
+            <div class="card-actions">
+              <button class="btn-export" type="button" id="export-comparison-chart" aria-label="Exporter le graphique en SVG">
+                <svg class="export-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M12 3v10m0 0l-4-4m4 4l4-4M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                SVG
+              </button>
+            </div>
+          </div>
+          <div class="toolbar" style="margin-bottom: 1rem;">
+            <div class="metric" style="width: 250px;">
+              <label for="metric-select" style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem;">Métrique</label>
+              <select id="metric-select" aria-label="Sélectionner une métrique" disabled>
+                <option value="" selected>Chargement...</option>
+              </select>
+            </div>
+          </div>
+          <div id="comparison-chart" class="chart"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-overlay"></div>
+
+  <script type="module">
+    import { dataLoader } from '../scripts/data/loader.js';
+    import { Header } from '../scripts/ui/header.js';
+    import { modal } from '../scripts/ui/modal.js';
+    import { buildChartDataPayload, downloadEChartsSVGWithData } from '../scripts/ui/svgExport.js';
+    import { createLogoElement } from '../scripts/ui/logoResolver.js';
+    import { observeOnce } from '../scripts/ui/onView.js';
+    import { animateKPI } from '../scripts/ui/kpi.js';
+
+    let currentTeam = null;
+    let currentSeason = null;
+    let clubMeta = {};
+    const prefix = location.pathname.includes('/pages/') ? '../' : './';
+    const STADIUM_CACHE_KEY = 'stadiumMeta_v2';
+    const STADIUM_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+    let stadiumCache = loadStadiumMetaFromCache();
+    let stadiumRequestId = 0;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const chartAnimDuration = reduceMotion ? 0 : 700;
+    let resultsChartInstance = null;
+    let homeAwayChartInstance = null;
+    let comparisonChartInstance = null;
+    let radarChartInstance = null;
+    let resultsChartData = null;
+    let homeAwayChartData = null;
+    let comparisonChartData = null;
+    let radarChartData = null;
+    let teamDetailUpdateToken = 0;
+    let comparisonUpdateToken = 0;
+
+    function isInViewport(el) {
+      if (!el) return false;
+      const rect = el.getBoundingClientRect();
+      return rect.top < window.innerHeight && rect.bottom > 0;
+    }
+
+    function shouldAnimateChart(el) {
+      return !reduceMotion && el && el.dataset.seen !== '1';
+    }
+
+    function prepareChartContainer(container, el) {
+      if (!container) return;
+      if (shouldAnimateChart(el)) {
+        container.classList.add('chart--hidden');
+      } else {
+        container.classList.remove('chart--hidden');
+      }
+    }
+
+    function addResizeObserver(chart, el) {
+      if (!chart || !el) return;
+      const ro = new ResizeObserver(() => chart.resize());
+      ro.observe(el);
+    }
+
+    function slugifyClubName(name) {
+      if (!name) return '';
+      return name
+        .toLowerCase()
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[.']/g, '')
+        .replace(/&/g, 'and')
+        .replace(/[\s_]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    }
+
+    function buildFilename(parts) {
+      return parts
+        .filter(Boolean)
+        .map((part) =>
+          String(part)
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '')
+        )
+        .filter(Boolean)
+        .join('-');
+    }
+
+    function getMetricLabel(metric) {
+      return dataLoader.getMetricLabel(metric);
+    }
+
+    function populateMetricSelect(selectEl) {
+      if (!selectEl) return;
+      const options = dataLoader.getMetricOptions();
+      selectEl.innerHTML = '';
+      if (!options.length) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'Aucune métrique disponible';
+        opt.disabled = true;
+        opt.selected = true;
+        selectEl.appendChild(opt);
+        selectEl.disabled = true;
+        return;
+      }
+
+      options.forEach((metric, index) => {
+        const opt = document.createElement('option');
+        opt.value = metric.key;
+        opt.textContent = metric.label;
+        if (index === 0) opt.selected = true;
+        selectEl.appendChild(opt);
+      });
+      selectEl.disabled = false;
+    }
+
+    function ensureRadarChartReady() {
+      if (!radarChartInstance) {
+        initRadarChart();
+      }
+      if (radarChartInstance && radarChartData) {
+        updateRadarChart(radarChartData, false);
+      }
+    }
+
+    function ensureResultsChartReady() {
+      if (!resultsChartInstance) {
+        initResultsChart();
+      }
+      if (resultsChartInstance && resultsChartData) {
+        renderResultsChart(resultsChartData.wins, resultsChartData.draws, resultsChartData.losses, false);
+      }
+    }
+
+    function ensureHomeAwayChartReady() {
+      if (!homeAwayChartInstance) {
+        initHomeAwayChart();
+      }
+      if (homeAwayChartInstance && homeAwayChartData) {
+        renderHomeAwayChart(
+          homeAwayChartData.homeGF,
+          homeAwayChartData.awayGF,
+          homeAwayChartData.homeGA,
+          homeAwayChartData.awayGA,
+          false
+        );
+      }
+    }
+
+    function ensureComparisonChartReady() {
+      if (!comparisonChartInstance) {
+        initComparisonChart();
+      }
+      if (comparisonChartInstance && comparisonChartData) {
+        renderComparisonChart(
+          comparisonChartData.metric,
+          comparisonChartData.teamValue,
+          comparisonChartData.avgValue,
+          comparisonChartData.clubColor,
+          false
+        );
+      }
+    }
+
+    function buildRadarPayload() {
+      if (!currentTeam || !currentSeason || !radarChartData) return null;
+      const allStats = dataLoader.teamStats.filter(s => s.season === currentSeason);
+      const indicators = [
+        { name: 'BUTS', key: 'goals' },
+        { name: 'TIRS', key: 'total_scoring_att' },
+        { name: 'TIRS CADRES', key: 'ontarget_scoring_att' },
+        { name: 'CLEAN SHEETS', key: 'clean_sheet' },
+        { name: 'PASSES', key: 'total_pass' },
+        { name: 'TACLES', key: 'total_tackle' }
+      ];
+      const values = indicators.map(i => Number(radarChartData[i.key]) || 0);
+      return {
+        ...buildChartDataPayload({
+          pageId: 'equipes',
+          chartId: 'radar-profile',
+          title: 'Profil statistique',
+          metric: 'profil-statistique',
+          categories: indicators.map(i => i.name),
+          series: [{ name: currentTeam, data: values }]
+        }),
+        club: currentTeam,
+        season: currentSeason,
+        values
+      };
+    }
+
+    function buildResultsPayload() {
+      if (!currentTeam || !currentSeason || !resultsChartData) return null;
+      const values = [
+        resultsChartData.wins,
+        resultsChartData.draws,
+        resultsChartData.losses
+      ];
+      return {
+        ...buildChartDataPayload({
+          pageId: 'equipes',
+          chartId: 'results-split',
+          title: 'Répartition résultats',
+          metric: 'results',
+          categories: ['Victoires', 'Nuls', 'Défaites'],
+          series: [{ name: currentTeam, data: values }]
+        }),
+        club: currentTeam,
+        season: currentSeason,
+        values
+      };
+    }
+
+    function buildHomeAwayPayload() {
+      if (!currentTeam || !currentSeason || !homeAwayChartData) return null;
+      const series = [
+        { name: 'Buts marqués', data: [homeAwayChartData.homeGF, homeAwayChartData.awayGF] },
+        { name: 'Buts concédés', data: [homeAwayChartData.homeGA, homeAwayChartData.awayGA] }
+      ];
+      return {
+        ...buildChartDataPayload({
+          pageId: 'equipes',
+          chartId: 'home-away',
+          title: 'Domicile vs Extérieur',
+          metric: 'home-away',
+          categories: ['Domicile', 'Extérieur'],
+          series
+        }),
+        club: currentTeam,
+        season: currentSeason,
+        values: {
+          homeGF: homeAwayChartData.homeGF,
+          awayGF: homeAwayChartData.awayGF,
+          homeGA: homeAwayChartData.homeGA,
+          awayGA: homeAwayChartData.awayGA
+        }
+      };
+    }
+
+    function buildComparisonPayload() {
+      if (!currentTeam || !currentSeason || !comparisonChartData) return null;
+      const metricLabel = getMetricLabel(comparisonChartData.metric || '');
+      return {
+        ...buildChartDataPayload({
+          pageId: 'equipes',
+          chartId: 'comparison',
+          title: 'Comparaison moyenne PL',
+          metric: metricLabel,
+          categories: [currentTeam, 'Moyenne PL'],
+          series: [{
+            name: metricLabel,
+            data: [comparisonChartData.teamValue, Math.round(comparisonChartData.avgValue)]
+          }]
+        }),
+        club: currentTeam,
+        season: currentSeason,
+        values: {
+          team: comparisonChartData.teamValue,
+          average: Math.round(comparisonChartData.avgValue)
+        }
+      };
+    }
+
+    function getClubMeta(teamName) {
+      if (!teamName || !clubMeta) return null;
+      const slug = slugifyClubName(teamName);
+      if (clubMeta[slug]) return clubMeta[slug];
+      return Object.values(clubMeta).find(meta =>
+        meta && meta.name && meta.name.toLowerCase() === teamName.toLowerCase()
+      ) || null;
+    }
+
+    function loadStadiumMetaFromCache() {
+      try {
+        const raw = localStorage.getItem(STADIUM_CACHE_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveStadiumMetaToCache(cache) {
+      try {
+        localStorage.setItem(STADIUM_CACHE_KEY, JSON.stringify(cache));
+      } catch (e) {}
+    }
+
+    function toCoord(value) {
+      if (value === null || value === undefined || value === '') return NaN;
+      const n = Number(value);
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    function hasCoords(lat, lon) {
+      return Number.isFinite(lat) && Number.isFinite(lon) && !(lat === 0 && lon === 0);
+    }
+
+    function commonsFileUrl(value) {
+      if (!value) return null;
+      if (typeof value === 'string' && value.startsWith('http')) return value;
+      const normalized = String(value).replace(/ /g, '_');
+      return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(normalized)}`;
+    }
+
+    function getEntityLabel(entity) {
+      if (!entity || !entity.labels) return null;
+      if (entity.labels.fr && entity.labels.fr.value) return entity.labels.fr.value;
+      if (entity.labels.en && entity.labels.en.value) return entity.labels.en.value;
+      const any = Object.values(entity.labels)[0];
+      return any && any.value ? any.value : null;
+    }
+
+    async function fetchWikidataEntity(qid) {
+      const url = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${qid}&props=claims|labels|descriptions&languages=fr|en&format=json&origin=*`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json && json.entities && json.entities[qid] ? json.entities[qid] : null;
+    }
+
+    function getClaimValue(entity, prop) {
+      if (!entity || !entity.claims || !entity.claims[prop] || !entity.claims[prop][0]) return null;
+      const snak = entity.claims[prop][0].mainsnak;
+      return snak && snak.datavalue ? snak.datavalue.value : null;
+    }
+
+    
+
+    async function fetchStadiumMetaFromWikidata(wikidataId) {
+      if (!wikidataId) return null;
+      const clubEntity = await fetchWikidataEntity(wikidataId);
+      if (!clubEntity) return null;
+
+      const stadiumClaim = getClaimValue(clubEntity, 'P115');
+      const stadiumQid = stadiumClaim && stadiumClaim.id ? stadiumClaim.id : null;
+      if (!stadiumQid) return null;
+
+      const stadiumEntity = await fetchWikidataEntity(stadiumQid);
+      if (!stadiumEntity) return null;
+
+      const coord = getClaimValue(stadiumEntity, 'P625');
+      const lat = coord && coord.latitude !== undefined ? Number(coord.latitude) : NaN;
+      const lon = coord && coord.longitude !== undefined ? Number(coord.longitude) : NaN;
+
+      const imageRaw = getClaimValue(stadiumEntity, 'P18');
+      const imageUrl = imageRaw ? commonsFileUrl(imageRaw) : null;
+
+      return {
+        stadium: getEntityLabel(stadiumEntity),
+        lat: Number.isFinite(lat) ? lat : null,
+        lon: Number.isFinite(lon) ? lon : null,
+        imageUrl
+      };
+    }
+
+    async function fetchWikidataIdByName(teamName) {
+      const search = encodeURIComponent(`${teamName} football club`);
+      const url = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${search}&language=en&format=json&limit=1&origin=*`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        const json = await res.json();
+        const item = json && json.search && json.search[0];
+        return item && item.id ? item.id : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function runPool(items, limit, worker) {
+      const queue = items.slice();
+      const runners = new Array(limit).fill(null).map(async () => {
+        while (queue.length) {
+          const item = queue.shift();
+          try {
+            await worker(item);
+          } catch (e) {}
+        }
+      });
+      await Promise.all(runners);
+    }
+
+    function setupTeamKpis(stats) {
+      const mapping = [
+        { selector: '[data-kpi="goals"]', value: stats.goals || 0 },
+        { selector: '[data-kpi="goals_conceded"]', value: stats.goals_conceded || 0 },
+        { selector: '[data-kpi="clean_sheet"]', value: stats.clean_sheet || 0 },
+        { selector: '[data-kpi="total_yel_card"]', value: stats.total_yel_card || 0 }
+      ];
+
+      const kpiSection = document.getElementById('team-stats-container');
+      if (!kpiSection) return;
+
+      mapping.forEach(item => {
+        const el = kpiSection.querySelector(item.selector);
+        if (!el) return;
+        el.dataset.target = String(item.value);
+        el.textContent = '0';
+        observeOnce(el, () => animateKPI(el));
+      });
+    }
+
+    function getSeasonMax(allStats, key) {
+      let max = 0;
+      allStats.forEach(s => {
+        const v = Number(s[key]) || 0;
+        if (v > max) max = v;
+      });
+      return Math.max(1, Math.ceil(max * 1.05));
+    }
+
+    function initRadarChart() {
+      if (radarChartInstance) return;
+      const radarEl = document.getElementById('radarChart');
+      if (!radarEl) return;
+      radarChartInstance = echarts.init(radarEl, null, { renderer: 'svg' });
+      addResizeObserver(radarChartInstance, radarEl);
+      radarChartInstance.resize();
+    }
+
+    function initResultsChart() {
+      if (resultsChartInstance) return;
+      const resultsEl = document.getElementById('results-chart');
+      if (!resultsEl) return;
+      resultsChartInstance = echarts.init(resultsEl, null, { renderer: 'svg' });
+      addResizeObserver(resultsChartInstance, resultsEl);
+      resultsChartInstance.resize();
+    }
+
+    function initHomeAwayChart() {
+      if (homeAwayChartInstance) return;
+      const homeAwayEl = document.getElementById('homeaway-chart');
+      if (!homeAwayEl) return;
+      homeAwayChartInstance = echarts.init(homeAwayEl, null, { renderer: 'svg' });
+      addResizeObserver(homeAwayChartInstance, homeAwayEl);
+      homeAwayChartInstance.resize();
+    }
+
+    function initComparisonChart() {
+      if (comparisonChartInstance) return;
+      const comparisonEl = document.getElementById('comparison-chart');
+      if (!comparisonEl) return;
+      comparisonChartInstance = echarts.init(comparisonEl, null, { renderer: 'svg' });
+      addResizeObserver(comparisonChartInstance, comparisonEl);
+      comparisonChartInstance.resize();
+    }
+
+    function updateRadarChart(stats, animate) {
+      const allStats = dataLoader.teamStats.filter(s => s.season === currentSeason);
+      const indicators = [
+        { name: 'BUTS', key: 'goals' },
+        { name: 'TIRS', key: 'total_scoring_att' },
+        { name: 'TIRS CADRÉS', key: 'ontarget_scoring_att' },
+        { name: 'CLEAN SHEETS', key: 'clean_sheet' },
+        { name: 'PASSES', key: 'total_pass' },
+        { name: 'TACLES', key: 'total_tackle' }
+      ];
+      const indicator = indicators.map(i => ({
+        name: i.name,
+        max: getSeasonMax(allStats, i.key)
+      }));
+      const values = indicators.map(i => Number(stats[i.key]) || 0);
+
+      if (!radarChartInstance) return;
+      const enableAnim = animate && !reduceMotion;
+      if (enableAnim) {
+        radarChartInstance.clear();
+      }
+
+      radarChartInstance.setOption({
+        animation: enableAnim,
+        animationDuration: enableAnim ? 800 : 0,
+        animationDurationUpdate: enableAnim ? 800 : 0,
+        animationEasing: 'cubicOut',
+        tooltip: { trigger: 'item', backgroundColor: 'rgba(15, 23, 42, 0.8)', textStyle: { color: '#f1f5f9' } },
+        radar: {
+          indicator,
+          splitNumber: 4,
+          axisName: { color: '#cbd5e1' },
+          splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.35)' } },
+          splitArea: { areaStyle: { color: ['rgba(15, 23, 42, 0.4)', 'rgba(30, 41, 59, 0.4)'] } },
+          axisLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.45)' } }
+        },
+        series: [{
+          type: 'radar',
+          data: [{
+            value: values,
+            name: currentTeam,
+            areaStyle: { color: 'rgba(99, 102, 241, 0.35)' },
+            lineStyle: { color: '#6366f1', width: 2 },
+            itemStyle: { color: '#6366f1' }
+          }]
+        }]
+      }, true);
+    }
+
+    function renderResultsChart(wins, draws, losses, animate) {
+      if (!resultsChartInstance) return;
+      const enableAnim = animate && !reduceMotion;
+      if (enableAnim) {
+        resultsChartInstance.clear();
+      }
+      resultsChartInstance.setOption({
+        animation: enableAnim,
+        animationDuration: enableAnim ? 700 : 0,
+        animationDurationUpdate: enableAnim ? 700 : 0,
+        animationEasing: 'cubicOut',
+        tooltip: { trigger: 'item', backgroundColor: 'rgba(15, 23, 42, 0.8)', textStyle: { color: '#f1f5f9' } },
+        legend: { textStyle: { color: '#94a3b8' } },
+        series: [{
+          data: [
+            { value: wins, name: 'Victoires', itemStyle: { color: '#2ecc71' } },
+            { value: draws, name: 'Nuls', itemStyle: { color: '#f1c40f' } },
+            { value: losses, name: 'Défaites', itemStyle: { color: '#e74c3c' } }
+          ],
+          type: 'pie'
+        }]
+      }, true);
+    }
+
+    function renderHomeAwayChart(homeGF, awayGF, homeGA, awayGA, animate) {
+      if (!homeAwayChartInstance) return;
+      const enableAnim = animate && !reduceMotion;
+      if (enableAnim) {
+        homeAwayChartInstance.clear();
+      }
+      homeAwayChartInstance.setOption({
+        animation: enableAnim,
+        animationDuration: enableAnim ? 900 : 0,
+        animationDurationUpdate: enableAnim ? 900 : 0,
+        animationEasing: 'cubicOut',
+        tooltip: { trigger: 'axis', backgroundColor: 'rgba(15, 23, 42, 0.8)', textStyle: { color: '#f1f5f9' } },
+        legend: { textStyle: { color: '#94a3b8' } },
+        xAxis: { type: 'category', data: ['Domicile', 'Extérieur'], axisLabel: { color: '#94a3b8' } },
+        yAxis: { axisLabel: { color: '#94a3b8' } },
+        series: [
+          { name: 'Buts marqués', data: [homeGF, awayGF], type: 'bar', itemStyle: { color: '#10b981' } },
+          { name: 'Buts concédés', data: [homeGA, awayGA], type: 'bar', itemStyle: { color: '#ef4444' } }
+        ]
+      }, true);
+    }
+
+    function renderComparisonChart(metric, teamValue, avgValue, clubColor, animate) {
+      if (!comparisonChartInstance) return;
+      const metricLabel = getMetricLabel(metric);
+      const enableAnim = animate && !reduceMotion;
+      if (enableAnim) {
+        comparisonChartInstance.clear();
+      }
+      comparisonChartInstance.setOption({
+        animation: enableAnim,
+        animationDuration: enableAnim ? 900 : 0,
+        animationDurationUpdate: enableAnim ? 900 : 0,
+        animationEasing: 'cubicOut',
+        tooltip: { trigger: 'axis', backgroundColor: 'rgba(15, 23, 42, 0.8)', textStyle: { color: '#f1f5f9' } },
+        xAxis: { type: 'category', data: [currentTeam, 'Moyenne PL'], axisLabel: { color: '#94a3b8' } },
+        yAxis: { axisLabel: { color: '#94a3b8' } },
+        series: [{
+          name: metricLabel,
+          data: [
+            { value: teamValue, itemStyle: { color: clubColor } },
+            { value: Math.round(avgValue), itemStyle: { color: '#9aa4b2' } }
+          ],
+          type: 'bar'
+        }]
+      }, true);
+    }
+
+
+    async function updateStadiumCard(teamName) {
+      const requestId = ++stadiumRequestId;
+      const meta = getClubMeta(teamName) || {};
+
+      const stadiumLineEl = document.getElementById('stadiumLine');
+      const photoEl = document.getElementById('stadiumPhoto');
+      const photoWrap = photoEl ? photoEl.parentElement : null;
+      const mapWrapEl = document.getElementById('stadiumMapWrap');
+      const mapFallbackEl = document.getElementById('stadiumMapFallback');
+      const openMapBtn = document.getElementById('openMapBtn');
+      const clubTitleEl = document.getElementById('clubTitle');
+      const stadiumFallbackEl = document.getElementById('stadiumFallback');
+
+      clubTitleEl.textContent = teamName ? `Stade - ${teamName}` : 'Stade';
+      stadiumLineEl.textContent = 'Chargement...';
+      stadiumFallbackEl.style.display = 'none';
+      if (photoWrap) photoWrap.style.display = 'none';
+      openMapBtn.style.display = 'none';
+      mapWrapEl.innerHTML = '';
+      mapWrapEl.style.display = 'none';
+      mapFallbackEl.style.display = 'block';
+
+      let wikidataId = meta.wikidataId || null;
+      if (!wikidataId) {
+        wikidataId = await fetchWikidataIdByName(teamName);
+      }
+      if (requestId !== stadiumRequestId) return;
+      if (!wikidataId) {
+        stadiumLineEl.textContent = 'Non renseigné';
+        stadiumFallbackEl.textContent = 'Non renseigné';
+        stadiumFallbackEl.style.display = 'block';
+        capacityEl.textContent = 'Capacité : Non renseigné';
+        return;
+      }
+
+      const cached = stadiumCache[wikidataId];
+      const cacheFresh = cached && cached.updatedAt && (Date.now() - cached.updatedAt) < STADIUM_CACHE_MAX_AGE_MS;
+      let stadiumData = cacheFresh ? cached : null;
+
+      if (!stadiumData) {
+        const fetched = await fetchStadiumMetaFromWikidata(wikidataId);
+        if (requestId !== stadiumRequestId) return;
+        if (fetched) {
+          stadiumData = { ...fetched, updatedAt: Date.now() };
+          stadiumCache[wikidataId] = stadiumData;
+          saveStadiumMetaToCache(stadiumCache);
+        }
+      }
+
+      if (!stadiumData) {
+        stadiumLineEl.textContent = 'Non renseigné';
+        stadiumFallbackEl.textContent = 'Non renseigné';
+        stadiumFallbackEl.style.display = 'block';
+        capacityEl.textContent = 'Capacité : Non renseigné';
+        return;
+      }
+
+      const lineParts = [];
+      if (stadiumData.stadium) lineParts.push(stadiumData.stadium);
+      if (stadiumData.place) lineParts.push(stadiumData.place);
+      stadiumLineEl.textContent = lineParts.length ? lineParts.join(' - ') : 'Non renseigné';
+      stadiumFallbackEl.style.display = lineParts.length ? 'none' : 'block';
+
+
+      if (photoEl && stadiumData.imageUrl) {
+        photoEl.src = stadiumData.imageUrl;
+        photoEl.alt = stadiumData.stadium ? `Stade ${stadiumData.stadium}` : `Stade de ${teamName}`;
+        photoEl.onerror = () => {
+          if (photoWrap) photoWrap.style.display = 'none';
+        };
+        if (photoWrap) photoWrap.style.display = 'block';
+      } else if (photoWrap) {
+        photoWrap.style.display = 'none';
+      }
+
+      const lat = toCoord(stadiumData.lat);
+      const lon = toCoord(stadiumData.lon);
+      console.log("OSM coords", teamName, { lat, lon, stadium: stadiumData?.stadium });
+      if (hasCoords(lat, lon)) {
+        const delta = 0.01;
+        const minLon = lon - delta;
+        const minLat = lat - delta;
+        const maxLon = lon + delta;
+        const maxLat = lat + delta;
+        const src = `https://www.openstreetmap.org/export/embed.html?bbox=${minLon}%2C${minLat}%2C${maxLon}%2C${maxLat}&layer=mapnik&marker=${lat}%2C${lon}`;
+        mapWrapEl.innerHTML = `<iframe class="stadium-map" loading="lazy" src="${src}" style="border:0;" allowfullscreen></iframe>`;
+        mapWrapEl.style.display = 'block';
+        mapFallbackEl.style.display = 'none';
+        openMapBtn.style.display = 'inline-flex';
+        openMapBtn.href = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}`;
+      } else {
+        mapWrapEl.innerHTML = '';
+        mapWrapEl.style.display = 'none';
+        mapFallbackEl.style.display = 'block';
+        openMapBtn.style.display = 'none';
+        openMapBtn.removeAttribute('href');
+      }
+    }
+
+    async function initTeams() {
+      const success = await dataLoader.load('../data/csvjson.json', '../data/csvjson (1).json');
+      if (!success) {
+        console.error('❌ Failed to load teams data');
+        modal.show('Erreur', 'Impossible de charger les données.');
+        return;
+      }
+
+      try {
+        const clubMetaRes = await fetch('../clubMeta.json');
+        clubMeta = await clubMetaRes.json();
+      } catch (e) {
+        console.warn('⚠️ Failed to load clubMeta.json:', e.message);
+      }
+
+      console.log('✅ Teams data loaded successfully');
+      Header.init();
+      Header.setActive('/pages/equipes.html');
+      const exportRadarBtn = document.getElementById('export-radar-chart');
+      const exportResultsBtn = document.getElementById('export-results-chart');
+      const exportHomeAwayBtn = document.getElementById('export-homeaway-chart');
+      const exportComparisonBtn = document.getElementById('export-comparison-chart');
+      const metricSelect = document.getElementById('metric-select');
+
+      populateMetricSelect(metricSelect);
+      if (metricSelect && !metricSelect.dataset.bound) {
+        metricSelect.addEventListener('change', updateComparisonChart);
+        metricSelect.dataset.bound = '1';
+      }
+
+      if (exportRadarBtn) {
+        exportRadarBtn.addEventListener('click', async () => {
+          ensureRadarChartReady();
+          if (!radarChartInstance) return;
+          const filename = buildFilename([
+            'equipes',
+            slugifyClubName(currentTeam),
+            currentSeason,
+            'radar-chart'
+          ]);
+          const payload = buildRadarPayload();
+          await downloadEChartsSVGWithData(radarChartInstance, filename, payload);
+        });
+      }
+
+      if (exportResultsBtn) {
+        exportResultsBtn.addEventListener('click', async () => {
+          ensureResultsChartReady();
+          if (!resultsChartInstance) return;
+          const filename = buildFilename([
+            'equipes',
+            slugifyClubName(currentTeam),
+            currentSeason,
+            'results-chart'
+          ]);
+          const payload = buildResultsPayload();
+          await downloadEChartsSVGWithData(resultsChartInstance, filename, payload);
+        });
+      }
+
+      if (exportHomeAwayBtn) {
+        exportHomeAwayBtn.addEventListener('click', async () => {
+          ensureHomeAwayChartReady();
+          if (!homeAwayChartInstance) return;
+          const filename = buildFilename([
+            'equipes',
+            slugifyClubName(currentTeam),
+            currentSeason,
+            'homeaway-chart'
+          ]);
+          const payload = buildHomeAwayPayload();
+          await downloadEChartsSVGWithData(homeAwayChartInstance, filename, payload);
+        });
+      }
+
+      if (exportComparisonBtn) {
+        exportComparisonBtn.addEventListener('click', async () => {
+          ensureComparisonChartReady();
+          if (!comparisonChartInstance) return;
+          const metricSelect = document.getElementById('metric-select');
+          const metric = metricSelect ? metricSelect.value : '';
+          const filename = buildFilename([
+            'equipes',
+            slugifyClubName(currentTeam),
+            currentSeason,
+            metric,
+            'comparison-chart'
+          ]);
+          const payload = buildComparisonPayload();
+          await downloadEChartsSVGWithData(comparisonChartInstance, filename, payload);
+        });
+      }
+      
+
+      const teams = dataLoader.getTeams();
+      const grid = document.getElementById('teams-grid');
+      const searchInput = document.getElementById('search-input');
+      const backBtn = document.getElementById('back-btn');
+
+      const uniqueWikidataIds = Array.from(new Set(
+        teams
+          .map(team => {
+            const meta = getClubMeta(team);
+            return meta && meta.wikidataId ? meta.wikidataId : null;
+          })
+          .filter(Boolean)
+      ));
+
+      runPool(uniqueWikidataIds, 3, async (wikidataId) => {
+        const cached = stadiumCache[wikidataId];
+        const cacheFresh = cached && cached.updatedAt && (Date.now() - cached.updatedAt) < STADIUM_CACHE_MAX_AGE_MS;
+        if (cacheFresh) return;
+        const fetched = await fetchStadiumMetaFromWikidata(wikidataId);
+        if (fetched) {
+          stadiumCache[wikidataId] = { ...fetched, updatedAt: Date.now() };
+          saveStadiumMetaToCache(stadiumCache);
+        }
+      });
+
+      function renderTeams(filter = '') {
+        grid.innerHTML = '';
+        const filtered = teams.filter(t => 
+          t.toLowerCase().includes(filter.toLowerCase())
+        );
+        filtered.forEach(team => {
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.style.cursor = 'pointer';
+          const logoImg = createLogoElement(team, { size: 40 });
+          const titleEl = document.createElement('h3');
+          titleEl.className = 'card-title';
+          titleEl.textContent = team;
+          const textEl = document.createElement('p');
+          textEl.className = 'card-text';
+          textEl.textContent = 'Voir les stats';
+          
+          card.appendChild(logoImg);
+          card.appendChild(titleEl);
+          card.appendChild(textEl);
+          card.addEventListener('click', () => showTeamDetail(team));
+          grid.appendChild(card);
+        });
+      }
+
+      searchInput.addEventListener('input', (e) => {
+        renderTeams(e.target.value);
+      });
+
+      backBtn.addEventListener('click', () => {
+        document.getElementById('detail-section').classList.add('hidden');
+        document.querySelector('section:first-of-type').classList.remove('hidden');
+        grid.parentElement.parentElement.classList.remove('hidden');
+      });
+
+      function showTeamDetail(team) {
+        currentTeam = team;
+        document.querySelector('section:first-of-type').classList.add('hidden');
+        document.getElementById('detail-section').classList.remove('hidden');
+        
+        const teamNameEl = document.getElementById('team-name');
+        teamNameEl.innerHTML = '';
+        teamNameEl.appendChild(createLogoElement(team, { size: 48 }));
+        const nameText = document.createElement('span');
+        nameText.textContent = team;
+        nameText.style.marginLeft = '1rem';
+        teamNameEl.appendChild(nameText);
+
+        const seasons = dataLoader.getTeamSeasons(team);
+        const seasonSelect = document.getElementById('team-season-select');
+        
+        seasonSelect.innerHTML = '';
+        seasons.forEach(season => {
+          const option = document.createElement('option');
+          option.value = season;
+          option.textContent = season;
+          seasonSelect.appendChild(option);
+        });
+
+        if (seasons.length === 0) {
+          modal.show('Club absent', `${team} n'a pas de données disponibles.`);
+          return;
+        }
+
+        currentSeason = seasons[0];
+        seasonSelect.value = currentSeason;
+
+        if (!seasonSelect.dataset.bound) {
+          seasonSelect.addEventListener('change', () => {
+            const nextSeason = seasonSelect.value;
+            const prevSeason = currentSeason;
+            currentSeason = nextSeason;
+            const ok = updateTeamDetail(prevSeason);
+            if (!ok && prevSeason) {
+              currentSeason = prevSeason;
+              seasonSelect.value = prevSeason;
+            }
+          });
+          seasonSelect.dataset.bound = '1';
+        }
+
+        updateTeamDetail();
+        updateStadiumCard(currentTeam);
+      }
+
+      function updateTeamDetail(prevSeason) {
+        const updateToken = ++teamDetailUpdateToken;
+        const stats = dataLoader.getStatsByTeamAndSeason(currentTeam, currentSeason);
+        if (!stats) {
+          modal.show('Données manquantes', `${currentTeam} n'était pas en Premier League en ${currentSeason}.`);
+          if (prevSeason) {
+            currentSeason = prevSeason;
+          }
+          return false;
+        }
+
+        const statsContainer = document.getElementById('team-stats-container');
+        statsContainer.innerHTML = `
+          <div class="kpi">
+            <div class="kpi-value" data-kpi="goals">0</div>
+            <div class="kpi-label">Buts marqués</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-value" data-kpi="goals_conceded">0</div>
+            <div class="kpi-label">Buts concédés</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-value" data-kpi="clean_sheet">0</div>
+            <div class="kpi-label">Matchs sans encaisser</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-value" data-kpi="total_yel_card">0</div>
+            <div class="kpi-label">Cartons jaunes</div>
+          </div>
+        `;
+        setupTeamKpis(stats);
+
+        const matches = dataLoader.getMatchesByTeamAndSeason(currentTeam, currentSeason);
+        let wins = 0, draws = 0, losses = 0;
+        matches.forEach(m => {
+          if (m.homeTeam === currentTeam) {
+            if (m.homeGoals > m.awayGoals) wins++;
+            else if (m.homeGoals === m.awayGoals) draws++;
+            else losses++;
+          } else {
+            if (m.awayGoals > m.homeGoals) wins++;
+            else if (m.awayGoals === m.homeGoals) draws++;
+            else losses++;
+          }
+        });
+
+        const resultsEl = document.getElementById('results-chart');
+        const resultsContainer = resultsEl.closest('.chart-container') || resultsEl.parentElement;
+        prepareChartContainer(resultsContainer, resultsEl);
+        resultsChartData = { wins, draws, losses };
+        if (resultsChartInstance) {
+          renderResultsChart(wins, draws, losses, isInViewport(resultsEl));
+        } else if (!shouldAnimateChart(resultsEl)) {
+          initResultsChart();
+          renderResultsChart(wins, draws, losses, false);
+        }
+        observeOnce(resultsEl, () => {
+          if (updateToken !== teamDetailUpdateToken) return;
+          if (resultsContainer && !reduceMotion) {
+            resultsContainer.classList.remove('chart--hidden');
+          }
+          requestAnimationFrame(() => {
+            if (updateToken !== teamDetailUpdateToken) return;
+            initResultsChart();
+            if (resultsChartData) {
+              renderResultsChart(resultsChartData.wins, resultsChartData.draws, resultsChartData.losses, true);
+            }
+          });
+        });
+
+        let homeGF = 0, homeGA = 0, awayGF = 0, awayGA = 0;
+        matches.forEach(m => {
+          if (m.homeTeam === currentTeam) {
+            homeGF += m.homeGoals;
+            homeGA += m.awayGoals;
+          } else {
+            awayGF += m.awayGoals;
+            awayGA += m.homeGoals;
+          }
+        });
+
+        const homeAwayEl = document.getElementById('homeaway-chart');
+        const homeAwayContainer = homeAwayEl.closest('.chart-container') || homeAwayEl.parentElement;
+        prepareChartContainer(homeAwayContainer, homeAwayEl);
+        homeAwayChartData = { homeGF, awayGF, homeGA, awayGA };
+        if (homeAwayChartInstance) {
+          renderHomeAwayChart(homeGF, awayGF, homeGA, awayGA, isInViewport(homeAwayEl));
+        } else if (!shouldAnimateChart(homeAwayEl)) {
+          initHomeAwayChart();
+          renderHomeAwayChart(homeGF, awayGF, homeGA, awayGA, false);
+        }
+        observeOnce(homeAwayEl, () => {
+          if (updateToken !== teamDetailUpdateToken) return;
+          if (homeAwayContainer && !reduceMotion) {
+            homeAwayContainer.classList.remove('chart--hidden');
+          }
+          requestAnimationFrame(() => {
+            if (updateToken !== teamDetailUpdateToken) return;
+            initHomeAwayChart();
+            if (homeAwayChartData) {
+              renderHomeAwayChart(
+                homeAwayChartData.homeGF,
+                homeAwayChartData.awayGF,
+                homeAwayChartData.homeGA,
+                homeAwayChartData.awayGA,
+                true
+              );
+            }
+          });
+        });
+
+        updateComparisonChart();
+        const radarEl = document.getElementById('radarChart');
+        const radarContainer = radarEl.closest('.card') || radarEl.parentElement;
+        prepareChartContainer(radarContainer, radarEl);
+        radarChartData = stats;
+        if (radarChartInstance) {
+          updateRadarChart(stats, isInViewport(radarEl));
+        } else if (!shouldAnimateChart(radarEl)) {
+          initRadarChart();
+          updateRadarChart(stats, false);
+        }
+        observeOnce(radarEl, () => {
+          if (updateToken !== teamDetailUpdateToken) return;
+          if (radarContainer && !reduceMotion) {
+            radarContainer.classList.remove('chart--hidden');
+          }
+          requestAnimationFrame(() => {
+            if (updateToken !== teamDetailUpdateToken) return;
+            initRadarChart();
+            if (radarChartData) {
+              updateRadarChart(radarChartData, true);
+            }
+          });
+        });
+        updateStadiumCard(currentTeam);
+        return true;
+      }
+
+      function updateComparisonChart() {
+        if (!currentTeam || !currentSeason) return;
+        const updateToken = ++comparisonUpdateToken;
+        const metricSelect = document.getElementById('metric-select');
+        const metric = metricSelect ? metricSelect.value : '';
+        if (!metric) return;
+        const stats = dataLoader.getStatsByTeamAndSeason(currentTeam, currentSeason);
+        if (!stats) return;
+        const allStats = dataLoader.teamStats.filter(s => s.season === currentSeason);
+        const values = allStats
+          .map(s => Number(s[metric]))
+          .filter(v => Number.isFinite(v));
+        const avgValue = values.length ? values.reduce((acc, v) => acc + v, 0) / values.length : 0;
+        const teamValue = Number(stats[metric]) || 0;
+
+        const meta = getClubMeta(currentTeam) || {};
+        const clubColor = meta.primaryColor || meta.color || '#6366f1';
+        const neutralColor = '#9aa4b2';
+        const metricLabel = getMetricLabel(metric);
+
+        const comparisonEl = document.getElementById('comparison-chart');
+        const comparisonContainer = comparisonEl.closest('.chart-container') || comparisonEl.parentElement;
+        prepareChartContainer(comparisonContainer, comparisonEl);
+        comparisonChartData = { metric, metricLabel, teamValue, avgValue, clubColor };
+        if (comparisonChartInstance) {
+          renderComparisonChart(metric, teamValue, avgValue, clubColor, isInViewport(comparisonEl));
+        } else if (!shouldAnimateChart(comparisonEl)) {
+          initComparisonChart();
+          renderComparisonChart(metric, teamValue, avgValue, clubColor, false);
+        }
+        observeOnce(comparisonEl, () => {
+          if (updateToken !== comparisonUpdateToken) return;
+          if (comparisonContainer && !reduceMotion) {
+            comparisonContainer.classList.remove('chart--hidden');
+          }
+          requestAnimationFrame(() => {
+            if (updateToken !== comparisonUpdateToken) return;
+            initComparisonChart();
+            if (comparisonChartData) {
+              renderComparisonChart(
+                comparisonChartData.metric,
+                comparisonChartData.teamValue,
+                comparisonChartData.avgValue,
+                comparisonChartData.clubColor,
+                true
+              );
+            }
+          });
+        });
+      }
+
+      renderTeams();
+    }
+
+    initTeams();
+  </script>
+</body>
+</html>

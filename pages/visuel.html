@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visuel - PL Evolution</title>
+  <link rel="stylesheet" href="../styles/main.css">
+</head>
+<body>
+  <header>
+    <div class="header-container">
+      <a href="../index.html" class="logo" aria-label="Accueil">
+        <img src="../assets/pl-logo.png" alt="Premier League" class="pl-logo">
+      </a>
+      <button class="burger-btn" aria-label="Menu" aria-expanded="false" aria-controls="main-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav id="main-nav" data-open="false">
+        <a href="../index.html">Accueil</a>
+        <a href="./classement.html">Classement</a>
+        <a href="./equipes.html">Équipes</a>
+        <a href="./comparer.html">Comparer</a>
+        <a href="./chance.html">Chance de gagner</a>
+        <a href="./visuel.html">Visuel</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <div class="container">
+        
+        <div class="visuel-grid">
+          <div class="visuel-video-wrap" data-video-wrap tabindex="0">
+            <video
+              class="visuel-video"
+              id="visuel-video-a"
+              title="Vidéo Manchester United"
+              aria-label="Vidéo Manchester United"
+              muted
+              autoplay
+              loop
+              playsinline
+              preload="auto"
+              disablepictureinpicture
+              controlslist="nodownload noplaybackrate nofullscreen"
+            >
+              <source src="../assets/united1.mp4" type="video/mp4">
+            </video>
+          </div>
+          <div class="visuel-video-wrap" data-video-wrap tabindex="0">
+            <video
+              class="visuel-video"
+              id="visuel-video-b"
+              title="Vidéo Manchester City"
+              aria-label="Vidéo Manchester City"
+              muted
+              autoplay
+              loop
+              playsinline
+              preload="auto"
+              disablepictureinpicture
+              controlslist="nodownload noplaybackrate nofullscreen"
+            >
+              <source src="../assets/city1.mp4" type="video/mp4">
+            </video>
+          </div>
+        </div>
+        <h1 class="visuel-title">Visuel</h1>
+        <div class="visuel-poster-wrap">
+          <img class="visuel-poster" id="visuel-poster" src="../assets/affiche.jpg" alt="Affiche Premier League">
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="visuel-overlay" id="visuel-overlay" aria-hidden="true" role="dialog">
+    <img class="visuel-overlay-image" id="visuel-overlay-image" src="../assets/affiche.jpg" alt="Affiche Premier League">
+  </div>
+
+  <div class="modal-overlay"></div>
+
+  <script type="module">
+    import { Header } from '../scripts/ui/header.js';
+
+    Header.init();
+    Header.setActive('/pages/visuel.html');
+
+    const videos = [
+      document.getElementById('visuel-video-a'),
+      document.getElementById('visuel-video-b')
+    ].filter(Boolean);
+
+    const wraps = Array.from(document.querySelectorAll('[data-video-wrap]'));
+
+    const lockVideo = (video) => {
+      if (!video) return;
+      video.muted = true;
+      video.loop = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.setAttribute('muted', '');
+      video.setAttribute('loop', '');
+      video.setAttribute('autoplay', '');
+      video.setAttribute('playsinline', '');
+      video.setAttribute('controlslist', 'nodownload noplaybackrate nofullscreen');
+      video.setAttribute('disablepictureinpicture', '');
+      video.disablePictureInPicture = true;
+    };
+
+    const preventInteraction = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    wraps.forEach((wrap) => {
+      wrap.addEventListener('click', preventInteraction);
+      wrap.addEventListener('keydown', preventInteraction);
+      wrap.addEventListener('contextmenu', preventInteraction);
+    });
+
+    videos.forEach((video) => {
+      lockVideo(video);
+      video.addEventListener('pause', () => {
+        const playPromise = video.play();
+        if (playPromise && typeof playPromise.catch === 'function') {
+          playPromise.catch(() => {});
+        }
+      });
+    });
+
+    const waitForCanPlay = (video) => new Promise((resolve) => {
+      if (!video) return resolve();
+      if (video.readyState >= 3) return resolve();
+      video.addEventListener('canplay', () => resolve(), { once: true });
+    });
+
+    Promise.all(videos.map(waitForCanPlay)).then(() => {
+      videos.forEach((video) => {
+        const playPromise = video.play();
+        if (playPromise && typeof playPromise.catch === 'function') {
+          playPromise.catch(() => {});
+        }
+      });
+    });
+
+    const poster = document.getElementById('visuel-poster');
+    const overlay = document.getElementById('visuel-overlay');
+    const overlayImage = document.getElementById('visuel-overlay-image');
+
+    const openOverlay = () => {
+      if (!overlay) return;
+      overlay.dataset.open = 'true';
+      overlay.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    };
+
+    const closeOverlay = () => {
+      if (!overlay) return;
+      overlay.dataset.open = 'false';
+      overlay.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    };
+
+    if (poster) {
+      poster.addEventListener('click', openOverlay);
+    }
+
+    if (overlay) {
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay || event.target === overlayImage) {
+          if (event.target === overlay) closeOverlay();
+        }
+      });
+    }
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && overlay && overlay.dataset.open === 'true') {
+        closeOverlay();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classement - PL Evolution</title>
+  <link rel="stylesheet" href="../styles/main.css">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+  <header>
+    <div class="header-container">
+      <a href="../index.html" class="logo" aria-label="Accueil">
+        <img src="../assets/pl-logo.png" alt="Premier League" class="pl-logo">
+      </a>
+      <button class="burger-btn" aria-label="Menu" aria-expanded="false" aria-controls="main-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav id="main-nav" data-open="false">
+        <a href="../index.html">Accueil</a>
+        <a href="./classement.html">Classement</a>
+        <a href="./equipes.html">Équipes</a>
+        <a href="./comparer.html">Comparer</a>
+        <a href="./chance.html">Chance de gagner</a>
+        <a href="./visuel.html">Visuel</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <div class="container">
+        <h1>Classement Premier League</h1>
+        <div class="standings-controls" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; max-width: 600px;">
+          <div>
+            <label for="season-select" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Saison</label>
+            <select id="season-select" aria-label="Sélectionner une saison">
+              <option>2006-2007</option>
+            </select>
+          </div>
+          <div>
+            <label for="mode-select" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Affichage</label>
+            <div class="segmented">
+              <button class="active" data-mode="global" title="Tous les matchs">Global</button>
+              <button data-mode="home" title="Matchs à domicile">Domicile</button>
+              <button data-mode="away" title="Matchs en déplacement">Extérieur</button>
+            </div>
+          </div>
+        </div>
+
+                <div class="card">
+          <div class="card-head">
+            <h2>Classement</h2>
+            <div class="card-actions">
+              <button class="btn-export" type="button" id="export-standings-svg" aria-label="Exporter le classement en SVG">
+                <svg class="export-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M12 3v10m0 0l-4-4m4 4l4-4M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                SVG
+              </button>
+            </div>
+          </div>
+          <div class="card-body" id="classementExportArea">
+            <div class="table-responsive table-scroll">
+              <table id="standings-table">
+            <thead>
+              <tr>
+                <th style="width: 40px;">Rang</th>
+                <th>Club</th>
+                <th style="width: 50px;">MJ</th>
+                <th style="width: 50px;">V</th>
+                <th style="width: 50px;">N</th>
+                <th style="width: 50px;">D</th>
+                <th style="width: 50px;">BP</th>
+                <th style="width: 50px;">BC</th>
+                <th style="width: 50px;">Diff</th>
+                <th style="width: 60px; font-weight: 700;">Pts</th>
+              </tr>
+            </thead>
+            <tbody>
+            </tbody>
+          </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-overlay"></div>
+
+  <script type="module">
+    import { dataLoader } from '../scripts/data/loader.js';
+    import { Header } from '../scripts/ui/header.js';
+    import { modal } from '../scripts/ui/modal.js';
+    import { getClubLogo, createLogoElement } from '../scripts/ui/logoResolver.js';
+    import { observeOnce } from '../scripts/ui/onView.js';
+    import { ExportManager } from '../scripts/ui/export.js';
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let currentMode = 'global';
+    let canAnimateRows = false;
+
+    async function initClassement() {
+      const success = await dataLoader.load('../data/csvjson.json', '../data/csvjson (1).json');
+      if (!success) {
+        console.error('❌ Failed to load standings data');
+        modal.show('Erreur', 'Impossible de charger les données.');
+        return;
+      }
+      console.log('✅ Standings data loaded successfully');
+
+      Header.init();
+      Header.setActive('/pages/classement.html');
+
+      const seasonSelect = document.getElementById('season-select');
+      const modeButtons = document.querySelectorAll('.segmented button');
+      const tbody = document.querySelector('#standings-table tbody');
+      const tableEl = document.getElementById('standings-table');
+      const exportBtn = document.getElementById('export-standings-svg');
+      const exportArea = document.getElementById('classementExportArea');
+
+      const seasons = dataLoader.getSeasons();
+      seasonSelect.innerHTML = '';
+      seasons.forEach(season => {
+        const option = document.createElement('option');
+        option.value = season;
+        option.textContent = season;
+        seasonSelect.appendChild(option);
+      });
+
+      function updateTable() {
+        const season = seasonSelect.value;
+        const standings = getStandingsByMode(season, currentMode) || [];
+        
+        tbody.innerHTML = '';
+        standings.forEach((record, index) => {
+          const row = document.createElement('tr');
+          if (index < 4) row.classList.add('highlight-top');
+          if (index >= standings.length - 3) row.classList.add('highlight-bottom');
+
+          row.innerHTML = `
+            <td>${index + 1}</td>
+            <td class="club-cell"></td>
+            <td>${record.mj}</td>
+            <td>${record.v}</td>
+            <td>${record.n}</td>
+            <td>${record.d}</td>
+            <td>${record.gf}</td>
+            <td>${record.ga}</td>
+            <td>${record.diff > 0 ? '+' : ''}${record.diff}</td>
+            <td><strong>${record.pts}</strong></td>
+          `;
+          if (canAnimateRows && !reduceMotion) {
+            row.style.animation = `fadeInUp ${250 + index * 30}ms ease-out backwards`;
+          } else {
+            row.style.animation = 'none';
+          }
+          tbody.appendChild(row);
+
+          const clubCell = row.querySelector('.club-cell');
+          clubCell.appendChild(createLogoElement(record.team, { size: 22 }));
+          const teamName = document.createElement('strong');
+          teamName.textContent = record.team;
+          clubCell.appendChild(teamName);
+
+          console.log('[LOGO TEST]', record.team, getClubLogo(record.team));
+        });
+      }
+
+      modeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          modeButtons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentMode = btn.getAttribute('data-mode');
+          updateTable();
+        });
+      });
+
+      seasonSelect.addEventListener('change', updateTable);
+
+      updateTable();
+
+      observeOnce(tableEl, () => {
+        canAnimateRows = true;
+        updateTable();
+      });
+
+      if (exportBtn) {
+        exportBtn.addEventListener('click', async () => {
+          const season = seasonSelect.value || '';
+          const modeLabel = currentMode === 'home' ? 'domicile' : currentMode === 'away' ? 'exterieur' : 'global';
+          const filename = buildFilename(['classement', season, modeLabel]);
+          await ExportManager.exportElementAsSVG(exportArea, filename);
+        });
+      }
+    }
+
+    function buildFilename(parts) {
+      return parts
+        .filter(Boolean)
+        .map((part) =>
+          String(part)
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '_')
+            .replace(/[^a-z0-9_-]/g, '')
+        )
+        .filter(Boolean)
+        .join('_');
+    }
+
+    function getStandingsByMode(season, mode) {
+      const standings = {};
+      const matches = dataLoader.getMatchesBySeason(season);
+
+      matches.forEach(m => {
+        if (!standings[m.homeTeam]) {
+          standings[m.homeTeam] = { team: m.homeTeam, mj: 0, v: 0, n: 0, d: 0, gf: 0, ga: 0, pts: 0, home: { mj: 0, v: 0, n: 0, d: 0, gf: 0, ga: 0, pts: 0 }, away: { mj: 0, v: 0, n: 0, d: 0, gf: 0, ga: 0, pts: 0 } };
+        }
+        if (!standings[m.awayTeam]) {
+          standings[m.awayTeam] = { team: m.awayTeam, mj: 0, v: 0, n: 0, d: 0, gf: 0, ga: 0, pts: 0, home: { mj: 0, v: 0, n: 0, d: 0, gf: 0, ga: 0, pts: 0 }, away: { mj: 0, v: 0, n: 0, d: 0, gf: 0, ga: 0, pts: 0 } };
+        }
+
+        const home = standings[m.homeTeam];
+        const away = standings[m.awayTeam];
+
+        home.mj++;
+        away.mj++;
+        home.home.mj++;
+        away.away.mj++;
+
+        if (m.homeGoals > m.awayGoals) {
+          home.v++;
+          home.pts += 3;
+          home.home.v++;
+          home.home.pts += 3;
+          away.d++;
+          away.away.d++;
+        } else if (m.homeGoals < m.awayGoals) {
+          away.v++;
+          away.pts += 3;
+          away.away.v++;
+          away.away.pts += 3;
+          home.d++;
+          home.home.d++;
+        } else {
+          home.n++;
+          home.pts++;
+          home.home.n++;
+          home.home.pts++;
+          away.n++;
+          away.pts++;
+          away.away.n++;
+          away.away.pts++;
+        }
+
+        home.gf += m.homeGoals;
+        home.ga += m.awayGoals;
+        home.home.gf += m.homeGoals;
+        home.home.ga += m.awayGoals;
+
+        away.gf += m.awayGoals;
+        away.ga += m.homeGoals;
+        away.away.gf += m.awayGoals;
+        away.away.ga += m.homeGoals;
+      });
+
+      let result = Object.values(standings);
+
+      if (mode === 'home') {
+        result = result.map(team => ({
+          team: team.team,
+          mj: team.home.mj || 0,
+          v: team.home.v || 0,
+          n: team.home.n || 0,
+          d: team.home.d || 0,
+          gf: team.home.gf || 0,
+          ga: team.home.ga || 0,
+          pts: team.home.pts || 0,
+          diff: (team.home.gf || 0) - (team.home.ga || 0)
+        })).filter(t => t.mj > 0);
+      } else if (mode === 'away') {
+        result = result.map(team => ({
+          team: team.team,
+          mj: team.away.mj || 0,
+          v: team.away.v || 0,
+          n: team.away.n || 0,
+          d: team.away.d || 0,
+          gf: team.away.gf || 0,
+          ga: team.away.ga || 0,
+          pts: team.away.pts || 0,
+          diff: (team.away.gf || 0) - (team.away.ga || 0)
+        })).filter(t => t.mj > 0);
+      } else {
+        result = result.map(team => ({
+          ...team,
+          diff: team.gf - team.ga
+        }));
+      }
+
+      return result.sort((a, b) => {
+        if (b.pts !== a.pts) return b.pts - a.pts;
+        if (b.diff !== a.diff) return b.diff - a.diff;
+        if (b.gf !== a.gf) return b.gf - a.gf;
+        return a.team.localeCompare(b.team);
+      });
+    }
+
+    initClassement();
+  </script>
+</body>
+</html>
+
+
+
+

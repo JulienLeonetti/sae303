@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Premier League Evolution 2006-2018</title>
+  <link rel="stylesheet" href="styles/main.css">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+  <header>
+    <div class="header-container">
+      <a href="index.html" class="logo" aria-label="Accueil">
+        <img src="assets/pl-logo.png" alt="Premier League" class="pl-logo">
+      </a>
+      <button class="burger-btn" aria-label="Menu" aria-expanded="false" aria-controls="main-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav id="main-nav" data-open="false">
+        <a href="index.html">Accueil</a>
+        <a href="pages/classement.html">Classement</a>
+        <a href="pages/equipes.html">Équipes</a>
+        <a href="pages/comparer.html">Comparer</a>
+        <a href="pages/chance.html">Chance de gagner</a>
+        <a href="pages/visuel.html">Visuel</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="grid grid-2">
+          <div class="video-container">
+            <video autoplay muted loop playsinline>
+              <source src="assets/videos/intro-pl.mp4" type="video/mp4">
+            </video>
+          </div>
+          <div class="video-container">
+            <video autoplay muted loop playsinline>
+              <source src="assets/videos/plvideo.mp4" type="video/mp4">
+            </video>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="about">
+      <div class="container">
+        <h1>Premier League Evolution</h1>
+        <p style="font-size: 1.125rem; color: var(--color-text-muted); max-width: 800px; line-height: 1.8;">
+          Explorez l'évolution captivante de la Premier League de 2006 à 2018.
+          Analysez les performances des clubs, comparez les équipes, et découvrez
+          les statistiques détaillées qui ont marqué douze années d'excellence footballistique.
+        </p>
+      </div>
+    </section>
+
+    <section class="kpi-section">
+      <div class="container">
+        <h2 style="text-align: center; margin-bottom: 2rem;">Statistiques Globales</h2>
+        <div class="kpi-container">
+          <div class="kpi">
+            <div class="kpi-value" data-value="0">0</div>
+            <div class="kpi-label">Matchs joués</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-value" data-value="0">0</div>
+            <div class="kpi-label">Buts marqués</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-value" data-value="0">0</div>
+            <div class="kpi-label">Clubs uniques</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-value" data-value="0">0</div>
+            <div class="kpi-label">Saisons</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="teaser-chart">
+      <div class="container">
+        <div class="chart-container">
+          <div class="card-head">
+            <h2 class="chart-title">Buts totaux par saison</h2>
+            <div class="card-actions">
+              <button class="btn-export-svg" type="button" id="export-teaser-chart" aria-label="Exporter en SVG">
+                <svg class="export-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M12 3v10m0 0l-4-4m4 4l4-4M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                SVG
+              </button>
+            </div>
+          </div>
+          <div id="teaser-chart" class="chart"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-overlay"></div>
+
+  <script type="module">
+    import { dataLoader } from './scripts/data/loader.js';
+    import { Header } from './scripts/ui/header.js';
+    import { animateKPI } from './scripts/ui/kpi.js';
+    import { buildChartDataPayload, downloadEChartsSVGWithData } from './scripts/ui/svgExport.js';
+    import { observeOnce } from './scripts/ui/onView.js';
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const chartAnimDuration = reduceMotion ? 0 : 1500;
+    let teaserChartInstance = null;
+    let teaserChartData = null;
+
+    async function initHome() {
+      const success = await dataLoader.load('data/csvjson.json', 'data/csvjson (1).json');
+      if (!success) {
+        console.error('❌ Failed to load data');
+        return;
+      }
+
+      console.log('✅ Data loaded successfully');
+      console.log('KPI Values:', {
+        totalMatches: dataLoader.getTotalMatches(),
+        totalGoals: dataLoader.getTotalGoals(),
+        totalTeams: dataLoader.getTotalTeams(),
+        totalSeasons: dataLoader.getTotalSeasons()
+      });
+
+      Header.init();
+      Header.setActive('/');
+
+      const exportBtn = document.getElementById('export-teaser-chart');
+      if (exportBtn) {
+        exportBtn.addEventListener('click', async () => {
+          if (!teaserChartInstance) return;
+          const payload = buildChartDataPayload({
+            pageId: 'accueil',
+            chartId: 'teaser-chart',
+            title: 'Buts totaux par saison',
+            metric: 'buts',
+            xAxisName: '',
+            yAxisName: 'Buts',
+            categories: teaserChartData ? teaserChartData.seasons : [],
+            series: [
+              { name: 'Buts', data: teaserChartData ? teaserChartData.goalsBySeason : [] }
+            ]
+          });
+          const filename = buildFilename(['accueil', 'teaser-chart']);
+          await downloadEChartsSVGWithData(teaserChartInstance, filename, payload);
+        });
+      }
+
+      const kpiValues = document.querySelectorAll('.kpi-value');
+      const kpiTargets = [
+        dataLoader.getTotalMatches(),
+        dataLoader.getTotalGoals(),
+        dataLoader.getTotalTeams(),
+        dataLoader.getTotalSeasons()
+      ];
+      kpiValues.forEach((el, index) => {
+        el.setAttribute('data-target', kpiTargets[index]);
+        el.textContent = '0';
+        observeOnce(el, () => animateKPI(el));
+      });
+
+      const seasons = dataLoader.getSeasons();
+      const goalsBySeason = seasons.map(season => {
+        return dataLoader.getTotalGoalsBySeason(season);
+      });
+      scheduleTeaserChart(seasons, goalsBySeason);
+    }
+
+    function scheduleTeaserChart(seasons, goalsBySeason) {
+      teaserChartData = { seasons, goalsBySeason };
+      const chartDom = document.getElementById('teaser-chart');
+      const container = chartDom.closest('.chart-container') || chartDom.parentElement;
+      if (!reduceMotion && container) {
+        container.classList.add('chart--hidden');
+      }
+      observeOnce(chartDom, () => {
+        if (container && !reduceMotion) {
+          container.classList.remove('chart--hidden');
+        }
+        requestAnimationFrame(() => initTeaserChart(teaserChartData));
+      });
+    }
+
+    function initTeaserChart(data, animate = true) {
+      if (teaserChartInstance) return;
+      const chartDom = document.getElementById('teaser-chart');
+      teaserChartInstance = echarts.init(chartDom, null, { renderer: 'svg' });
+      renderTeaserChart(data, animate);
+
+      const ro = new ResizeObserver(() => teaserChartInstance.resize());
+      ro.observe(chartDom);
+      teaserChartInstance.resize();
+
+    }
+
+    function buildFilename(parts) {
+      return parts
+        .filter(Boolean)
+        .map((part) =>
+          String(part)
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '')
+        )
+        .filter(Boolean)
+        .join('-');
+    }
+
+    function renderTeaserChart(data, animate) {
+      if (!teaserChartInstance || !data) return;
+      const enableAnim = animate && !reduceMotion;
+      if (enableAnim) {
+        teaserChartInstance.clear();
+      }
+      const symbolSize = window.innerWidth < 768 ? 10 : 12;
+      const option = {
+        animation: enableAnim,
+        animationDuration: enableAnim ? 1200 : 0,
+        animationEasing: 'cubicOut',
+        animationDurationUpdate: enableAnim ? 600 : 0,
+        animationEasingUpdate: 'cubicOut',
+        responsive: true,
+        grid: { left: 50, right: 24, top: 30, bottom: 40, containLabel: true },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: { type: 'none' },
+          backgroundColor: 'rgba(10,12,20,0.92)',
+          borderColor: 'rgba(255,255,255,0.12)',
+          borderWidth: 1,
+          textStyle: { color: '#fff' }
+        },
+        title: { text: 'Buts totaux par saison', left: 'center', textStyle: { color: '#fff' } },
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          name: '',
+          data: data.seasons,
+          axisLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 12 },
+          axisLine: { lineStyle: { color: 'rgba(255,255,255,0.15)' } },
+          axisTick: { show: false }
+        },
+        yAxis: {
+          type: 'value',
+          name: 'Buts',
+          axisLabel: { color: 'rgba(255,255,255,0.55)', fontSize: 12 },
+          splitLine: { lineStyle: { color: 'rgba(255,255,255,0.10)' } },
+          axisLine: { show: false },
+          axisTick: { show: false }
+        },
+        series: [{
+          name: 'Buts',
+          data: data.goalsBySeason,
+          type: 'line',
+          smooth: true,
+          showSymbol: true,
+          symbol: 'circle',
+          symbolSize,
+          label: { show: false },
+          itemStyle: {
+            color: '#ec4899',
+            borderWidth: 2,
+            borderColor: '#0a0c14',
+            shadowBlur: 12,
+            shadowColor: 'rgba(236, 72, 153, 0.5)'
+          },
+          lineStyle: { width: 3, cap: 'round', join: 'round' },
+          areaStyle: { opacity: 0.08 },
+          emphasis: { focus: 'series', scale: 1.3 },
+          animationDelay: enableAnim ? (idx) => idx * 150 : 0
+        }]
+      };
+
+      teaserChartInstance.clear();
+      teaserChartInstance.setOption(option, true);
+    }
+
+    initHome();
+  </script>
+</body>
+</html>
